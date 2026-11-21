@@ -1108,7 +1108,7 @@ async function runCommand(text) {
   try { reply = await handleCommand(text); } catch (e) { reply = 'Ups, algo falló: ' + (e.message || e); }
   if (S.ui.sheet && S.ui.sheet.kind === 'voice') { S.ui.sheet.reply = reply; renderOverlay(); }
   // Acciones: pitido de confirmación (rápido). Preguntas (hora, clima, agenda…): respuesta hablada.
-  if (/^(Agregu[eé]|Timer de|Alarma para|Anotado|Listo|Tach[eé]|Activando)/.test(reply)) { unlockAudio(); beep(); }
+  if (/^(Agregu[eé]|Timer de|Alarma para|Anotado|Listo|Tach[eé]|Activando|Agend[eé])/.test(reply)) { if (!/apagu[eé]/.test(reply)) { unlockAudio(); beep(); } }
   else speak(reply);
   clearTimeout(runCommand._t);
   runCommand._t = setTimeout(() => { if (S.ui.sheet && S.ui.sheet.kind === 'voice' && S.ui.sheet.phase === 'done') closeSheet(); }, sh && sh.jarvis ? 3000 : 4500);
@@ -1150,11 +1150,20 @@ function numWords(q) {
   }
   return q;
 }
+function findItem(list, what) {
+  const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const w = norm(what).split(' ').filter(x => x.length > 2 && !/^(los|las|del|que|para|con|una|uno)$/.test(x));
+  const open = list.filter(x => !x.done);
+  return open.find(x => norm(x.title) === norm(what)) || open.find(x => w.length && w.every(k => norm(x.title).includes(k))) || open.find(x => w.length && w.some(k => k.length > 3 && norm(x.title).includes(k)));
+}
 async function handleCommand(raw) {
   let q = raw.toLowerCase().replace(/[¿?¡!.]/g, ' ').replace(/\s+/g, ' ').trim();
   const pm = q.match(/^(alexa|ok google|oye google|hey google|google|hey jarvis|oye jarvis|jarvis)\s*,?\s*/);
   if (pm) q = q.slice(pm[0].length);
   q = numWords(q);
+  const stopWords = /^(par[aá]|para ya|apag[aá]|basta|listo|silencio|stop|ok|ya est[aá]|cort[aá])(?=\s|$)/;
+  if (S.ui.ring && (stopWords.test(q) || /(par[aá]|apag[aá]).*(alarma|timer|temporizador)/.test(q))) { stopRing(); return 'Listo, lo apagué.'; }
+  if (stopWords.test(q) && q.split(' ').length <= 3) return 'Listo.';
   const numRe = '\\b(\\d+|' + Object.keys(NUMW).join('|') + ')';
   let m;
 
@@ -1176,9 +1185,23 @@ async function handleCommand(raw) {
     addTimer(n * u, lm ? cap(lm[1]) : n + ' ' + unit);
     return 'Timer de ' + n + ' ' + unit + (lm ? ' para ' + lm[1] : '') + ' en marcha.';
   }
-  if (/(cancel[aá]|par[aá]|deten[eé]|borr[aá]).*(timer|temporizador)/.test(q)) {
+  if (/(cancel[aá]|par[aá]|deten[eé]|borr[aá]|sac[aá]|quit[aá]).*(timer|temporizador)/.test(q)) {
+    const lm = q.match(/(?:timer|temporizador)\s+(?:de\s+|del\s+|para\s+)?(?:los\s+|las\s+|el\s+|la\s+)?(.+)$/);
+    if (lm && !/^(todos|los timers|todo)$/.test(lm[1])) {
+      const t = findItem(S.timers.map(x => ({ id: x.id, title: x.label })), lm[1]);
+      if (t) { S.timers = S.timers.filter(x => x.id !== t.id); saveTimers(); renderTimersCard(); return 'Listo, quité el timer ' + t.title + '.'; }
+    }
     const n = S.timers.length; S.timers = []; saveTimers(); renderTimersCard();
-    return n ? 'Listo, quité los timers.' : 'No había timers.';
+    return n ? 'Listo, quité ' + (n === 1 ? 'el timer.' : 'los ' + n + ' timers.') : 'No había timers.';
+  }
+  if (/(cancel[aá]|borr[aá]|sac[aá]|quit[aá]|elimin[aá]|desactiv[aá]).*(alarma)/.test(q)) {
+    const tm = q.match(/\b(\d{1,2})(?::(\d{2}))?\b/);
+    const before = S.alarms.length;
+    if (tm) { const t = pad(+tm[1]) + ':' + (tm[2] || '00'); S.alarms = S.alarms.filter(a => a.time !== t); }
+    else if (/todas/.test(q)) S.alarms = [];
+    else { const nx = nextAlarm(); if (nx) S.alarms = S.alarms.filter(a => a !== (nx.a || nx)); }
+    saveAlarms(); renderTimersCard(); renderHeader();
+    return before > S.alarms.length ? 'Listo, quité ' + (before - S.alarms.length === 1 ? 'la alarma.' : 'las alarmas.') : 'No encontré esa alarma.';
   }
   // Alarma
   if (/(alarma|despert)/.test(q) && (m = q.match(/\b(\d{1,2})(?:[:.h ](\d{2}))?\b/))) {
@@ -1199,7 +1222,7 @@ async function handleCommand(raw) {
   }
   // Compras: quitar
   if ((m = q.match(/(?:sac[aá]|quit[aá]|borr[aá]|elimin[aá]|tach[aá])\s+(?:el |la |los |las )?(.+?)\s+de\s+(?:la\s+)?(?:lista|compras)/))) {
-    const it = S.data.shop.find(x => !x.done && x.title.toLowerCase() === m[1].trim().toLowerCase());
+    const it = findItem(S.data.shop, m[1]);
     if (!it) return 'No encontré ' + m[1] + ' en Compras.';
     toggleItem('shop', it.id); renderLists();
     return 'Listo, taché ' + it.title + '.';
@@ -1208,6 +1231,21 @@ async function handleCommand(raw) {
     const p = S.data.shop.filter(x => !x.done).map(x => x.title);
     S.ui.tab = 'compras'; renderTabs();
     return p.length ? 'En Compras hay: ' + joinList(p) + '.' : 'La lista de compras está vacía.';
+  }
+  // Tareas: marcar como hecha
+  if ((m = q.match(/^(?:ya\s+)?(?:hice|termin[eé]|complet[eé])\s+(?:la tarea\s+|de\s+)?(.+)$/)) || (m = q.match(/(?:tach[aá]|complet[aá]|marc[aá]|termin[aá]|sac[aá]|quit[aá]|borr[aá]|elimin[aá])\s+(?:la tarea\s+)?(?:el |la |los |las )?(.+?)(?:\s+(?:de|en)\s+(?:las\s+|mis\s+)?tareas|\s+como hecha)?$/))) {
+    const it = findItem(S.data.tasks, m[1]);
+    if (it) { toggleItem('tasks', it.id); renderLists(); return 'Listo, taché la tarea ' + it.title + '.'; }
+    const sh = findItem(S.data.shop, m[1]);
+    if (sh) { toggleItem('shop', sh.id); renderLists(); return 'Listo, taché ' + sh.title + ' de Compras.'; }
+    return 'No encontré ' + m[1] + ' en tus tareas.';
+  }
+  // Agenda: crear evento (Gemini interpreta fecha y hora en el script)
+  if (/^(agend[aá]|cre[aá] (?:un )?evento|agreg[aá] (?:un )?evento|pon[eé] (?:un )?evento|anot[aá] en (?:el |mi )?calendario|program[aá] (?:un )?evento)/.test(q) || /(evento|cita|turno|reuni[oó]n|cumplea[nñ]os).*(calendario|agenda)/.test(q)) {
+    if (isDemo()) return 'En modo demo no puedo agendar eventos.';
+    const r = await apiPost('addEvent', { text: raw });
+    setTimeout(() => sync(), 1500);
+    return 'Agendé ' + r.title + ' ' + r.when + '.';
   }
   // Tareas / recordatorios
   if ((m = q.match(/tarea\s*:?\s+(.+)$/)) || (m = q.match(/(?:record[aá]r?me|recu[eé]rdame|acordame|hac[eé]me acordar)\s+(?:de\s+)?(?:que\s+)?(?:hay que\s+)?(.+)$/))) {
@@ -1408,6 +1446,7 @@ function jvFeed(chunk) {
   }).catch(e => jvSet('error', String(e.message || e)));
 }
 function jvHeard() {
+  if (S.ui.ring) { stopRing(); jvLog('apagado por voz', ''); }
   S.lastInput = Date.now(); exitAmbient(); unlockAudio(); beep();
   JV.got = {}; clearTimeout(JV.pickT); jvLog('hey jarvis', +JV.score.toFixed(2));
   JV.recd = { chunks: [], speech: 0, quiet: 0 };
