@@ -278,9 +278,11 @@ svg { display: block; flex-shrink: 0; }
 .garland { height: 30px; bottom: auto; z-index: 3; }
 body.amb .deco { z-index: 45; }
 .garland svg { position: absolute; top: 0; left: 0; width: 100%; height: 30px; }
-.garland b { position: absolute; top: 14px; width: 8px; height: 11px; margin-left: -4px; border-radius: 4px 4px 5px 5px; background: currentColor; animation: twinkle 1.8s ease-in-out infinite alternate; }
-@keyframes twinkle { from { opacity: .35; box-shadow: none; } to { opacity: 1; box-shadow: 0 0 10px 2px currentColor; } }
-.snow i { position: absolute; top: -30px; color: #FFF; animation: fall linear infinite; }
+.garland b { position: absolute; top: 14px; width: 8px; height: 11px; margin-left: -4px; border-radius: 4px 4px 5px 5px; background: currentColor; box-shadow: 0 0 8px 1px currentColor; will-change: opacity; animation: twinkle 1.8s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: .35; } to { opacity: 1; } }
+/* Sin tocar la pantalla 1 min: decoraciones quietas (la GPU descansa y la tablet no calienta). */
+body.calm .deco *, body.amb .deco * { animation-play-state: paused !important; }
+.snow i { position: absolute; top: -30px; color: #FFF; will-change: transform; animation: fall linear infinite; }
 @keyframes fall { to { transform: translateY(calc(100vh + 60px)) rotate(120deg); } }
 .waves svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 160px; }
 
@@ -1668,6 +1670,7 @@ function checkIdle() {
   const h = new Date().getHours();
   const night = S.settings.nightDim && (S.settings.nightFrom > S.settings.nightTo ? (h >= S.settings.nightFrom || h < S.settings.nightTo) : (h >= S.settings.nightFrom && h < S.settings.nightTo));
   $('dim').classList.toggle('on', !!night && S.ui.ambient);
+  document.body.classList.toggle('calm', Date.now() - S.lastInput > 60000);
 }
 
 /* ---------------------------- Tema y decoraciones ---------------------------- */
