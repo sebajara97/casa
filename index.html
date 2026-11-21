@@ -1032,11 +1032,24 @@ async function speak(text) {
     } catch (e) { /* sigue con eSpeak */ }
   }
   try {
-    const m = await mesLoad();
-    const raw = m.speak(speakText(text), { voice: 'es-la', rawdata: 'array', speed: 150, pitch: 45, wordgap: 1 });
-    if (!raw || !raw.length) return;
     unlockAudio(); if (!actx) return;
-    const buf = await actx.decodeAudioData(new Uint8Array(raw).buffer);
+    let buf = null;
+    if (!isDemo()) {
+      try {
+        const t0 = Date.now();
+        const r = await Promise.race([apiPost('tts', { text: String(text).slice(0, 300) }), new Promise((_, ko) => setTimeout(() => ko(new Error('tiempo')), 12000))]);
+        const bin = atob(r.audio), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        buf = await actx.decodeAudioData(u8.buffer);
+        jvLog('voz gemini', Date.now() - t0);
+      } catch (e) { jvLog('voz gemini error', String(e.message || e)); }
+    }
+    if (!buf) {
+      const m = await mesLoad();
+      const raw = m.speak(speakText(text), { voice: 'es-la', rawdata: 'array', speed: 150, pitch: 45, wordgap: 1 });
+      if (!raw || !raw.length) return;
+      buf = await actx.decodeAudioData(new Uint8Array(raw).buffer);
+    }
     try { if (MES.src) MES.src.stop(); } catch (e) { /* nada */ }
     const src = actx.createBufferSource(); const g = actx.createGain(); g.gain.value = 0.9;
     src.buffer = buf; src.connect(g); g.connect(actx.destination); src.start();
@@ -1094,7 +1107,9 @@ async function runCommand(text) {
   let reply;
   try { reply = await handleCommand(text); } catch (e) { reply = 'Ups, algo falló: ' + (e.message || e); }
   if (S.ui.sheet && S.ui.sheet.kind === 'voice') { S.ui.sheet.reply = reply; renderOverlay(); }
-  speak(reply);
+  // Acciones: pitido de confirmación (rápido). Preguntas (hora, clima, agenda…): respuesta hablada.
+  if (/^(Agregu[eé]|Timer de|Alarma para|Anotado|Listo|Tach[eé]|Activando)/.test(reply)) { unlockAudio(); beep(); }
+  else speak(reply);
   clearTimeout(runCommand._t);
   runCommand._t = setTimeout(() => { if (S.ui.sheet && S.ui.sheet.kind === 'voice' && S.ui.sheet.phase === 'done') closeSheet(); }, sh && sh.jarvis ? 3000 : 4500);
   if (sh && sh.jarvis) jvLog('respuesta', reply);
@@ -1334,8 +1349,55 @@ async function jvWake(chunk) {
   }
   return best;
 }
+// Nivel de ruido de fondo (se actualiza mientras espera "Hey Jarvis").
+JV.floor = 0.004;
+function jvRms(c) { let s = 0; for (let i = 0; i < c.length; i += 2) s += c[i] * c[i]; return Math.sqrt(s / (c.length / 2)); }
+// Graba la frase después del pitido: termina tras ~1 s de silencio, o a los 8 s.
+function jvRecord(chunk) {
+  const R = JV.recd; if (!R) return;
+  const rms = jvRms(chunk);
+  R.chunks.push(chunk.slice(0));
+  const speechTh = Math.max(0.012, JV.floor * 3.5), quietTh = Math.max(0.008, JV.floor * 2.2);
+  if (rms > speechTh) { R.speech++; R.quiet = 0; } else if (R.speech > 2 && rms < quietTh) R.quiet++;
+  const ms = R.chunks.length * 80;
+  if ((R.speech > 2 && R.quiet >= 12) || ms >= 8000) jvSend();
+  else if (R.speech <= 2 && ms >= 4500) { jvLog('sin voz', +rms.toFixed(4)); JV.recd = null; jvFinish(''); }
+}
+function jvWav(chunks) {
+  // Recorta el silencio inicial y final, y arma un WAV de 16 kHz, 16 bit, mono.
+  let a = 0, b = chunks.length;
+  const th = Math.max(0.01, JV.floor * 2.5);
+  while (a < b - 1 && jvRms(chunks[a]) < th) a++;
+  a = Math.max(0, a - 3);
+  const n = (b - a) * JV.FRAME, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, JV.RATE, true); v.setUint32(28, JV.RATE * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  let o = 44;
+  for (let k = a; k < b; k++) { const c = chunks[k]; for (let i = 0; i < c.length; i++) { const x = Math.max(-1, Math.min(1, c[i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7fff, true); o += 2; } }
+  let bin = ''; const u8 = new Uint8Array(buf);
+  for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+async function jvSend() {
+  const R = JV.recd; if (!R) return;
+  JV.recd = null; clearTimeout(JV.cmdT);
+  JV.state = 'flush'; jvSet('command', 'pensando');
+  const sh = S.ui.sheet; if (sh && sh.jarvis) { sh.heard = '…'; const el = $('v-heard'); if (el) el.textContent = 'Pensando…'; }
+  const t0 = Date.now();
+  try {
+    const r = await Promise.race([apiPost('stt', { audio: jvWav(R.chunks), mime: 'audio/wav' }), new Promise((_, ko) => setTimeout(() => ko(new Error('tiempo agotado')), 15000))]);
+    jvLog('gemini', { text: r.text, ms: Date.now() - t0 });
+    jvFinish(r.text || '');
+  } catch (e) {
+    jvLog('gemini error', String(e.message || e));
+    jvFinish('');
+    toast('Jarvis no pudo conectarse: ' + (e.message || e));
+  }
+}
 function jvFeed(chunk) {
-  if (JV.state === 'command') { if (JV.rec) JV.rec.acceptWaveformFloat(chunk, JV.RATE); if (JV.recG) JV.recG.acceptWaveformFloat(chunk, JV.RATE); return; }
+  if (JV.state === 'command') { jvRecord(chunk); return; }
+  if (JV.state === 'wake') { const r = jvRms(chunk); if (r < JV.floor * 4) JV.floor = JV.floor * 0.98 + r * 0.02; }
   if (JV.state === 'flush') return;
   if (JV.state !== 'wake') return;
   JV.q = JV.q.then(async () => {
@@ -1347,17 +1409,13 @@ function jvFeed(chunk) {
 }
 function jvHeard() {
   S.lastInput = Date.now(); exitAmbient(); unlockAudio(); beep();
-  if (!JV.rec) { toast('Jarvis todavía está cargando el dictado…'); JV.cool = Date.now() + 3000; return; }
   JV.got = {}; clearTimeout(JV.pickT); jvLog('hey jarvis', +JV.score.toFixed(2));
+  JV.recd = { chunks: [], speech: 0, quiet: 0 };
   S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '', jarvis: true };
   renderOverlay();
   jvSet('command');
   clearTimeout(JV.cmdT);
-  JV.cmdT = setTimeout(() => {
-    if (JV.state !== 'command') return;
-    JV.state = 'flush'; JV.rec.retrieveFinalResult(); if (JV.recG) JV.recG.retrieveFinalResult();
-    JV.cmdT = setTimeout(() => { if (JV.state === 'flush') jvFinish(''); }, 2500);
-  }, JV.CMD_MS);
+  JV.cmdT = setTimeout(() => { if (JV.state === 'command') { if (JV.recd && JV.recd.speech > 2) jvSend(); else { JV.recd = null; jvFinish(''); } } }, 9000);
 }
 function jvFinish(text) {
   clearTimeout(JV.cmdT); clearTimeout(JV.pickT); jvLog('dijo', text);
@@ -1394,7 +1452,7 @@ async function jvStart() {
     JV.ctx = ctx;
     if (ctx.state === 'suspended') { const res = () => ctx.resume(); document.addEventListener('pointerdown', res, { once: true }); try { await ctx.resume(); } catch (e) { /* espera un toque */ } }
     jvSet('wake');
-    jvLoadVosk().then(() => setTimeout(() => mesLoad().catch(() => {}), 3000)).catch(e => jvSet('error', 'dictado: ' + (e.message || e)));
+    setTimeout(() => mesLoad().catch(() => {}), 3000);
   } catch (e) { jvSet('error', String(e.message || e)); }
 }
 // Pruebas sin micrófono: ?jvtest=archivo1.wav,archivo2.wav (se piden al mismo servidor y se informa a /jvlog).
