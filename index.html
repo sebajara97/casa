@@ -867,7 +867,7 @@ function fmtSecs(sec) {
   return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
 }
 function addTimer(secs, label) {
-  S.timers.push({ id: 't' + Date.now(), label: label || (Math.round(secs / 60) + ' min'), total: secs, rem: secs, endAt: Date.now() + secs * 1000, st: 'run' });
+  S.timers.push({ id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), label: label || (Math.round(secs / 60) + ' min'), total: secs, rem: secs, endAt: Date.now() + secs * 1000, st: 'run' });
   saveTimers(); S.ui.ta = 'timers'; renderTimersCard();
 }
 function timerToggle(id) {
@@ -1163,9 +1163,11 @@ async function handleCommand(raw) {
   if (pm) q = q.slice(pm[0].length);
   q = numWords(q);
   if (/^(cancel[aá]r?|cancela|cancelalo|olvid[aá]lo|olvidate|dej[aá]lo|no importa|nada|ninguna|no)$/.test(q)) return 'Cancelado.';
-  const stopWords = /^(par[aá]|para ya|apag[aá]|basta|listo|silencio|stop|ok|ya est[aá]|cort[aá])(?=\s|$)/;
-  if (S.ui.ring && (stopWords.test(q) || /(par[aá]|apag[aá]).*(alarma|timer|temporizador)/.test(q))) { stopRing(); return 'Listo, lo apagué.'; }
-  if (stopWords.test(q) && q.split(' ').length <= 3) return 'Listo.';
+  const STOPV = '(?:cancel[aá]r?|cancela|par[aá]r?|deten(?:[eé]|er)?|det[eé]n|fren[aá]r?|apag[aá]r?|borr[aá]r?|sac[aá]r?|quit[aá]r?|elimin[aá]r?|termin[aá]r?|desactiv[aá]r?|cort[aá]r?)';
+  const stopWords = new RegExp('^(' + STOPV + '|para ya|basta|listo|silencio|stop|ok|ya est[aá])(?=\\s|$)');
+  const stopAny = new RegExp(STOPV + '.*(alarma|timer|temporizador|cron[oó]metro)');
+  if (S.ui.ring && (stopWords.test(q) || stopAny.test(q))) { stopRing(); return 'Listo, lo apagué.'; }
+  if (stopWords.test(q) && q.split(' ').length <= 3 && !/(timer|temporizador|cron[oó]metro|alarma|despertador)/.test(q)) return 'Listo.';
   const numRe = '\\b(\\d+|' + Object.keys(NUMW).join('|') + ')';
   let m;
 
@@ -1178,6 +1180,36 @@ async function handleCommand(raw) {
   // Modo ambiente
   if (/(modo ambiente|protector|pantalla de descanso)/.test(q)) { setTimeout(enterAmbient, 1500); return 'Activando modo ambiente.'; }
   // Timer
+  // Detener / cancelar timers (antes de la regla que crea timers)
+  if (new RegExp(STOPV + '.*(timer|temporizador|cron[oó]metro)').test(q)) {
+    if (!S.timers.length) return 'No hay timers en marcha.';
+    if (/\btodos\b|\blos (timers|temporizadores)\b/.test(q)) { const n = S.timers.length; S.timers = []; saveTimers(); renderTimersCard(); return n === 1 ? 'Listo, quité el timer.' : 'Listo, quité los ' + n + ' timers.'; }
+    let t = null;
+    const dm = q.match(new RegExp(numRe + '\\s*(segundos?|seg|minutos?|min|horas?|hs?)\\b'));
+    if (dm) {
+      const n = /\d/.test(dm[1]) ? parseInt(dm[1], 10) : NUMW[dm[1]];
+      const c0 = dm[2].charAt(0), secs = n * (c0 === 's' ? 1 : c0 === 'h' ? 3600 : 60);
+      t = S.timers.find(x => x.total === secs) || null;
+    }
+    if (!t) {
+      const lm = q.match(/(?:timer|temporizador|cron[oó]metro)\s+(?:de\s+|del\s+|para\s+)?(?:los\s+|las\s+|el\s+|la\s+)?(.+)$/);
+      if (lm) { const f = findItem(S.timers.map(x => ({ id: x.id, title: x.label })), lm[1]); if (f) t = S.timers.find(x => x.id === f.id); }
+    }
+    if (!t && S.timers.length === 1) t = S.timers[0];
+    if (!t) { const n = S.timers.length; S.timers = []; saveTimers(); renderTimersCard(); return n === 1 ? 'Listo, quité el timer.' : 'Listo, quité los ' + n + ' timers.'; }
+    S.timers = S.timers.filter(x => x.id !== t.id); saveTimers(); renderTimersCard();
+    return 'Listo, quité el timer ' + t.label + '.';
+  }
+  // Detener / cancelar alarmas (antes de la regla que crea alarmas)
+  if (new RegExp(STOPV + '.*(alarma|despertador)').test(q)) {
+    const tm = q.match(/\b(\d{1,2})(?::(\d{2}))?\b/);
+    const before = S.alarms.length;
+    if (tm) { const t = pad(+tm[1]) + ':' + (tm[2] || '00'); S.alarms = S.alarms.filter(a => a.time !== t && a.time !== pad((+tm[1] + 12) % 24) + ':' + (tm[2] || '00')); }
+    else if (/todas/.test(q)) S.alarms = [];
+    else { const nx = nextAlarm(); if (nx) S.alarms = S.alarms.filter(a => a !== nx); }
+    saveAlarms(); renderTimersCard(); renderHeader();
+    return before > S.alarms.length ? 'Listo, quité ' + (before - S.alarms.length === 1 ? 'la alarma.' : 'las alarmas.') : 'No encontré esa alarma.';
+  }
   if (/(timer|temporizador|cron[oó]metro)/.test(q) && (m = q.match(new RegExp(numRe + '\\s*(segundos?|seg|minutos?|min|horas?|hs?)\\b')))) {
     const n = /\d/.test(m[1]) ? parseInt(m[1], 10) : NUMW[m[1]];
     const c0 = m[2].charAt(0);
@@ -1186,24 +1218,6 @@ async function handleCommand(raw) {
     const lm = q.match(/para (?:el |la |los |las )?(.+)$/);
     addTimer(n * u, lm ? cap(lm[1]) : n + ' ' + unit);
     return 'Timer de ' + n + ' ' + unit + (lm ? ' para ' + lm[1] : '') + ' en marcha.';
-  }
-  if (/(cancel[aá]|par[aá]|deten[eé]|borr[aá]|sac[aá]|quit[aá]).*(timer|temporizador)/.test(q)) {
-    const lm = q.match(/(?:timer|temporizador)\s+(?:de\s+|del\s+|para\s+)?(?:los\s+|las\s+|el\s+|la\s+)?(.+)$/);
-    if (lm && !/^(todos|los timers|todo)$/.test(lm[1])) {
-      const t = findItem(S.timers.map(x => ({ id: x.id, title: x.label })), lm[1]);
-      if (t) { S.timers = S.timers.filter(x => x.id !== t.id); saveTimers(); renderTimersCard(); return 'Listo, quité el timer ' + t.title + '.'; }
-    }
-    const n = S.timers.length; S.timers = []; saveTimers(); renderTimersCard();
-    return n ? 'Listo, quité ' + (n === 1 ? 'el timer.' : 'los ' + n + ' timers.') : 'No había timers.';
-  }
-  if (/(cancel[aá]|borr[aá]|sac[aá]|quit[aá]|elimin[aá]|desactiv[aá]).*(alarma)/.test(q)) {
-    const tm = q.match(/\b(\d{1,2})(?::(\d{2}))?\b/);
-    const before = S.alarms.length;
-    if (tm) { const t = pad(+tm[1]) + ':' + (tm[2] || '00'); S.alarms = S.alarms.filter(a => a.time !== t); }
-    else if (/todas/.test(q)) S.alarms = [];
-    else { const nx = nextAlarm(); if (nx) S.alarms = S.alarms.filter(a => a !== (nx.a || nx)); }
-    saveAlarms(); renderTimersCard(); renderHeader();
-    return before > S.alarms.length ? 'Listo, quité ' + (before - S.alarms.length === 1 ? 'la alarma.' : 'las alarmas.') : 'No encontré esa alarma.';
   }
   // Alarma
   if (/(alarma|despert)/.test(q) && (m = q.match(/\b(\d{1,2})(?:[:.h ](\d{2}))?\b/))) {
