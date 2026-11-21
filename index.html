@@ -7,6 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Casa · Dashboard familiar</title>
+<script>window.CASA_BOOT = "__CASA_BOOT__";
+try { var _m = location.hash.match(/cfg=([A-Za-z0-9+\/=_-]+)/); if (_m && typeof window.CASA_BOOT !== 'object') window.CASA_BOOT = JSON.parse(decodeURIComponent(escape(atob(_m[1].replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) {}
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -508,7 +511,7 @@ function resolveTheme(sel, d) {
 /* ---------------------------- Estado ---------------------------- */
 const DEFAULTS = {
   apiUrl: '', token: '', theme: 'auto', anim: true, ambientMin: 5, nightDim: true, nightFrom: 22, nightTo: 6,
-  speak: true, lang: 'es-PY', lat: null, lon: null, place: '', days: 7
+  speak: true, jarvis: true, lang: 'es-PY', lat: null, lon: null, place: '', days: 7
 };
 const S = {
   settings: Object.assign({}, DEFAULTS, LS.get('settings', {})),
@@ -521,6 +524,10 @@ const S = {
   lastInput: Date.now(),
   themeId: 'clasico'
 };
+// Servida desde Apps Script: el script inyecta su propia URL y la clave, así la tablet no necesita configurarlas.
+const BOOT = (window.CASA_BOOT && typeof window.CASA_BOOT === 'object') ? window.CASA_BOOT : null;
+if (BOOT && BOOT.apiUrl && BOOT.token) { S.settings.apiUrl = BOOT.apiUrl; S.settings.token = BOOT.token; }
+if (BOOT && BOOT.lat != null && S.settings.lat == null) { S.settings.lat = BOOT.lat; S.settings.lon = BOOT.lon; S.settings.place = BOOT.place || ''; }
 const isDemo = () => !S.settings.apiUrl || !S.settings.token;
 const saveSettings = () => LS.set('settings', S.settings);
 const saveTimers = () => LS.set('timers', S.timers);
@@ -530,7 +537,7 @@ const saveAlarms = () => LS.set('alarms', S.alarms);
 function demoData() {
   const t = new Date();
   const at = (dd, h, m) => new Date(t.getFullYear(), t.getMonth(), t.getDate() + dd, h, m).toISOString();
-  const cal = [{ name: 'Familia', color: '#2E9E5B' }, { name: 'Sebas', color: '#2F6FEB' }, { name: 'Pareja', color: '#E8833A' }];
+  const cal = [{ name: 'Familia', color: '#2E9E5B' }, { name: 'Trabajo', color: '#2F6FEB' }, { name: 'Pareja', color: '#E8833A' }];
   const ev = (dd, h, m, title, c) => ({ id: 'd' + dd + h + m, title: title, allDay: false, start: at(dd, h, m), end: at(dd, h + 1, m), calendar: cal[c].name, color: cal[c].color });
   return {
     calendars: cal,
@@ -993,7 +1000,7 @@ function stopRing() {
 // FullScreendy (kiosco en la tablet) expone su propio puente de voz: la WebView de Android no trae speechSynthesis.
 const FSD = window.fullscreendy && typeof window.fullscreendy.textToSpeech === 'function' ? window.fullscreendy : null;
 // La WebView declara webkitSpeechRecognition pero no tiene reconocedor (sin servicios de Google): en el kiosco se escribe el comando.
-const SR = FSD ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
+const SR = (FSD || (BOOT && BOOT.kiosk)) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
 let rec = null;
 function speak(text) {
   if (!S.settings.speak) return;
@@ -1083,10 +1090,25 @@ function parseDue(str) {
 }
 const joinList = arr => arr.length > 1 ? arr.slice(0, -1).join(', ') + ' y ' + arr[arr.length - 1] : arr[0];
 
+// El dictado por voz escribe los números con letras: "siete y media" -> "7:30", "diez minutos" -> "10 minutos".
+function numWords(q) {
+  const U = { dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiuno: 21, veintiun: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29 };
+  const T = { treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90 };
+  const one = Object.assign({ un: 1, uno: 1, una: 1 }, U);
+  q = q.replace(/dieciséis/g, 'dieciseis').replace(/veintidós/g, 'veintidos').replace(/veintitrés/g, 'veintitres').replace(/veintiséis/g, 'veintiseis').replace(/veintiún/g, 'veintiun');
+  q = q.replace(new RegExp('\\b(' + Object.keys(T).join('|') + ')(?: y (' + Object.keys(one).join('|') + '))?\\b', 'g'), (m, t, u) => String(T[t] + (u ? one[u] : 0)));
+  q = q.replace(new RegExp('\\b(' + Object.keys(U).join('|') + ')\\b', 'g'), m => String(U[m]));
+  if (/(alarma|despert)/.test(q)) {
+    q = q.replace(/\ba la una\b/g, 'a la 1').replace(/\b(\d{1,2}) y media\b/g, '$1:30').replace(/\b(\d{1,2}) y cuarto\b/g, '$1:15')
+         .replace(/\b(\d{1,2}) y (\d{1,2})\b/g, (m, a, b) => a + ':' + pad(b)).replace(/\b(\d{1,2}) en punto\b/g, '$1:00');
+  }
+  return q;
+}
 async function handleCommand(raw) {
   let q = raw.toLowerCase().replace(/[¿?¡!.]/g, ' ').replace(/\s+/g, ' ').trim();
-  const pm = q.match(/^(alexa|ok google|oye google|hey google|google)\s*,?\s*/);
+  const pm = q.match(/^(alexa|ok google|oye google|hey google|google|hey jarvis|oye jarvis|jarvis)\s*,?\s*/);
   if (pm) q = q.slice(pm[0].length);
+  q = numWords(q);
   const numRe = '\\b(\\d+|' + Object.keys(NUMW).join('|') + ')';
   let m;
 
@@ -1142,7 +1164,7 @@ async function handleCommand(raw) {
     return p.length ? 'En Compras hay: ' + joinList(p) + '.' : 'La lista de compras está vacía.';
   }
   // Tareas / recordatorios
-  if ((m = q.match(/tarea\s*:?\s+(.+)$/)) || (m = q.match(/record[aá]me\s+(?:que\s+)?(?:hay que\s+)?(.+)$/))) {
+  if ((m = q.match(/tarea\s*:?\s+(.+)$/)) || (m = q.match(/(?:record[aá]r?me|recu[eé]rdame|acordame|hac[eé]me acordar)\s+(?:de\s+)?(?:que\s+)?(?:hay que\s+)?(.+)$/))) {
     const pd = parseDue(m[1]);
     addItem('tasks', pd.text, pd.due);
     S.ui.tab = 'tareas'; renderTabs(); renderLists();
@@ -1181,6 +1203,176 @@ async function handleCommand(raw) {
 }
 
 /* ---------------------------- Overlays ---------------------------- */
+/* ---------------------------- Jarvis (voz sin Google) ----------------------------
+ * "Hey Jarvis" -> pitido -> comando en español. Todo corre en el dispositivo:
+ *  - Palabra de activación: openWakeWord (modelo hey_jarvis, ONNX) con onnxruntime-web.
+ *  - Dictado: Vosk (modelo chico de español), se descarga una vez y queda en caché.
+ * Necesita micrófono en contexto seguro (https o http://localhost). No funciona dentro del marco de Apps Script.
+ */
+const JV = {
+  ORT: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/',
+  OWW: 'https://cdn.jsdelivr.net/npm/openwakeword-wasm-browser@0.1.1/models/',
+  VOSK: 'https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js',
+  VOSK_MODEL: 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-es-0.3.tar.gz',
+  FRAME: 1280, RATE: 16000, THRESHOLD: 0.5, SCALE: 32767, CMD_MS: 8000,
+  state: 'off', note: '', score: 0, peak: 0,
+  mel: [], hist: [], q: Promise.resolve(), sess: null, model: null, rec: null, cmdT: null, cool: 0
+};
+const jvWanted = () => S.settings.jarvis !== false && (FSD || (BOOT && BOOT.kiosk) || /[?&]jarvis=1/.test(location.search));
+const jvScript = url => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = url; s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar ' + url)); document.head.appendChild(s); });
+function jvSet(state, note) {
+  JV.state = state; JV.note = note || '';
+  let el = $('jv');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'jv';
+    el.style.cssText = 'position:fixed;left:10px;bottom:6px;z-index:5;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;opacity:.55;pointer-events:none;display:flex;gap:6px;align-items:center;color:var(--muted,#9aa)';
+    document.body.appendChild(el);
+  }
+  const color = { loading: '#8a8f98', wake: '#2E9E5B', command: '#3b82f6', error: '#d9534f', off: 'transparent' }[state];
+  const text = { loading: 'Jarvis cargando…', wake: 'Jarvis', command: 'Jarvis te escucha', error: 'Jarvis: ' + JV.note, off: '' }[state];
+  el.innerHTML = state === 'off' ? '' : '<span style="width:7px;height:7px;border-radius:50%;background:' + color + '"></span>' + esc(text);
+}
+function jvResetWake() {
+  JV.mel = [];
+  JV.hist = []; for (let i = 0; i < 16; i++) JV.hist.push(new Float32Array(96));
+}
+async function jvLoadWake() {
+  if (!window.ort) await jvScript(JV.ORT + 'ort.min.js');
+  ort.env.wasm.wasmPaths = JV.ORT; ort.env.wasm.numThreads = 1;
+  const mk = f => ort.InferenceSession.create(JV.OWW + f, { executionProviders: ['wasm'] });
+  JV.sess = { mel: await mk('melspectrogram.onnx'), emb: await mk('embedding_model.onnx'), kw: await mk('hey_jarvis_v0.1.onnx') };
+  jvResetWake();
+}
+async function jvLoadVosk() {
+  if (!window.Vosk) await jvScript(JV.VOSK);
+  JV.model = await Vosk.createModel(JV.VOSK_MODEL);
+}
+// Un bloque de 80 ms -> puntaje de "hey jarvis" (0..1). Devuelve el máximo del bloque.
+async function jvWake(chunk) {
+  const s = JV.sess; let best = 0;
+  let input = chunk;
+  if (JV.SCALE !== 1) { input = new Float32Array(chunk.length); for (let i = 0; i < chunk.length; i++) input[i] = chunk[i] * JV.SCALE; }
+  const melOut = await s.mel.run({ [s.mel.inputNames[0]]: new ort.Tensor('float32', input, [1, JV.FRAME]) });
+  const md = melOut[s.mel.outputNames[0]].data;
+  const frames = Math.floor(md.length / 32);
+  for (let j = 0; j < frames; j++) { const f = new Float32Array(32); for (let k = 0; k < 32; k++) f[k] = md[j * 32 + k] / 10 + 2; JV.mel.push(f); }
+  while (JV.mel.length >= 76) {
+    const flat = new Float32Array(76 * 32);
+    for (let j = 0; j < 76; j++) flat.set(JV.mel[j], j * 32);
+    const eo = await s.emb.run({ [s.emb.inputNames[0]]: new ort.Tensor('float32', flat, [1, 76, 32, 1]) });
+    JV.hist.shift(); JV.hist.push(new Float32Array(eo[s.emb.outputNames[0]].data));
+    const he = new Float32Array(16 * 96);
+    for (let j = 0; j < 16; j++) he.set(JV.hist[j], j * 96);
+    const ko = await s.kw.run({ [s.kw.inputNames[0]]: new ort.Tensor('float32', he, [1, 16, 96]) });
+    const score = ko[s.kw.outputNames[0]].data[0];
+    if (score > best) best = score;
+    JV.mel.splice(0, 8);
+  }
+  return best;
+}
+function jvFeed(chunk) {
+  if (JV.state === 'command') { if (JV.rec) JV.rec.acceptWaveformFloat(chunk, JV.RATE); return; }
+  if (JV.state !== 'wake') return;
+  JV.q = JV.q.then(async () => {
+    if (JV.state !== 'wake') return;
+    const score = await jvWake(chunk);
+    JV.score = score;
+    if (score > JV.THRESHOLD && Date.now() > JV.cool) jvHeard();
+  }).catch(e => jvSet('error', String(e.message || e)));
+}
+function jvHeard() {
+  S.lastInput = Date.now(); exitAmbient(); unlockAudio(); beep();
+  if (!JV.model) { toast('Jarvis todavía está cargando el dictado…'); JV.cool = Date.now() + 3000; return; }
+  if (JV.rec) { try { JV.rec.remove(); } catch (e) { /* nada */ } }
+  JV.rec = new JV.model.KaldiRecognizer(JV.RATE);
+  JV.rec.on('partialresult', m => {
+    const sh = S.ui.sheet; const t = (m.result && m.result.partial) || '';
+    if (sh && sh.kind === 'voice' && sh.phase === 'listen' && t) { sh.heard = t; const el = $('v-heard'); if (el) el.textContent = '“' + t + '”'; }
+  });
+  JV.rec.on('result', m => { const t = ((m.result && m.result.text) || '').trim(); if (t && JV.state === 'command') jvFinish(t); });
+  S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '', jarvis: true };
+  renderOverlay();
+  jvSet('command');
+  clearTimeout(JV.cmdT);
+  JV.cmdT = setTimeout(() => { if (JV.state === 'command') jvFinish(''); }, JV.CMD_MS);
+}
+function jvFinish(text) {
+  clearTimeout(JV.cmdT);
+  jvResetWake(); JV.cool = Date.now() + 1500;
+  jvSet('wake');
+  text = text.replace(/^(hey |oye |ey )?(jarvis|yarbis|yarvis)\s*/i, '').trim();
+  if (text) runCommand(text);
+  else if (S.ui.sheet && S.ui.sheet.jarvis) closeSheet();
+}
+async function jvStart() {
+  if (!jvWanted() || JV.state !== 'off') return;
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }); }
+  catch (e) { return; } // sin permiso de micrófono (p. ej. dentro de Apps Script): Jarvis queda apagado
+  jvSet('loading');
+  try {
+    await jvLoadWake();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: JV.RATE });
+    const code = 'class P extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(' + JV.FRAME + ');this.p=0;}process(i){const x=i[0][0];if(x){for(let k=0;k<x.length;k++){this.b[this.p++]=x[k];if(this.p===' + JV.FRAME + '){this.port.postMessage(this.b.slice(0));this.p=0;}}}return true;}}registerProcessor("jv",P);';
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: 'application/javascript' })));
+    const node = new AudioWorkletNode(ctx, 'jv');
+    node.port.onmessage = ev => {
+      const c = ev.data; let p = 0; for (let i = 0; i < c.length; i += 16) { const a = Math.abs(c[i]); if (a > p) p = a; }
+      JV.peak = Math.max(p, JV.peak * 0.95);
+      jvFeed(c);
+    };
+    const mute = ctx.createGain(); mute.gain.value = 0;
+    ctx.createMediaStreamSource(stream).connect(node); node.connect(mute); mute.connect(ctx.destination);
+    JV.ctx = ctx;
+    if (ctx.state === 'suspended') { const res = () => ctx.resume(); document.addEventListener('pointerdown', res, { once: true }); try { await ctx.resume(); } catch (e) { /* espera un toque */ } }
+    jvSet('wake');
+    jvLoadVosk().catch(e => jvSet('error', 'dictado: ' + (e.message || e)));
+  } catch (e) { jvSet('error', String(e.message || e)); }
+}
+// Pruebas sin micrófono: ?jvtest=archivo1.wav,archivo2.wav (se piden al mismo servidor y se informa a /jvlog).
+async function jvTest(list) {
+  const log = o => fetch('jvlog?' + encodeURIComponent(JSON.stringify(o))).catch(() => {});
+  const pcm = async name => {
+    const ab = await (await fetch(name)).arrayBuffer();
+    const dec = await new (window.AudioContext || window.webkitAudioContext)().decodeAudioData(ab);
+    const off = new OfflineAudioContext(1, Math.ceil(dec.duration * JV.RATE), JV.RATE);
+    const src = off.createBufferSource(); src.buffer = dec; src.connect(off.destination); src.start();
+    const d = (await off.startRendering()).getChannelData(0); const o = new Float32Array(d.length + JV.RATE * 3); o.set(d, JV.RATE * 2); return o;
+  };
+  try {
+    const t0 = performance.now();
+    await jvLoadWake(); await log({ step: 'wake cargado', ms: Math.round(performance.now() - t0) });
+    for (const name of list) {
+      const a = await pcm(name); const out = { file: name, secs: +(a.length / JV.RATE).toFixed(1) };
+      for (const scale of [1, 32767]) {
+        JV.SCALE = scale; jvResetWake(); let best = 0; const t1 = performance.now();
+        for (let i = 0; i + JV.FRAME <= a.length; i += JV.FRAME) { const sc = await jvWake(a.subarray(i, i + JV.FRAME)); if (sc > best) best = sc; }
+        out['wake_x' + scale] = +best.toFixed(3); out['ms_bloque_x' + scale] = +((performance.now() - t1) / (a.length / JV.FRAME)).toFixed(1);
+      }
+      await log(out);
+    }
+    JV.SCALE = 32767;
+    const t2 = performance.now();
+    await jvLoadVosk(); await log({ step: 'vosk cargado', ms: Math.round(performance.now() - t2) });
+    for (const name of list) {
+      const a = await pcm(name);
+      const rec = new JV.model.KaldiRecognizer(JV.RATE); let text = ''; const t3 = performance.now(); let fin;
+      const done = new Promise(r => { fin = r; });
+      let sent = false;
+      rec.on('result', m => { text += ' ' + ((m.result && m.result.text) || ''); if (sent) fin(); });
+      for (let i = 0; i < a.length; i += 4000) rec.acceptWaveformFloat(a.slice(i, i + 4000), JV.RATE);
+      sent = true; rec.retrieveFinalResult();
+      await Promise.race([done, new Promise(r => setTimeout(r, 60000))]);
+      let reply = ''; const t = text.trim();
+      if (/[?&]jvrun=1/.test(location.search) && t) { try { reply = await handleCommand(t); } catch (e) { reply = 'ERROR ' + e.message; } }
+      await log({ file: name, vosk: t, ms: Math.round(performance.now() - t3), audio_ms: Math.round(a.length / 16), reply: reply });
+      rec.remove();
+    }
+    await log({ step: 'fin', heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB' : '' });
+  } catch (e) { await log({ error: String(e && e.stack || e) }); }
+}
+
 function closeSheet() {
   try { if (rec) rec.abort(); } catch (e) { /* nada */ }
   S.ui.sheet = null; renderOverlay();
@@ -1192,10 +1384,10 @@ function voiceSheet(sh) {
   const done = sh.phase === 'done';
   return '<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="Asistente de voz">' +
     '<button class="x" data-act="close" aria-label="Cerrar">' + ic('x', 18) + '</button>' +
-    (SR || done ? '<button class="orb ' + (listening ? 'live' : '') + (done ? ' ok' : '') + '" data-act="listen" aria-label="Escuchar de nuevo" style="border:0;padding:0"><div><div>' + ic(done ? 'check' : 'mic', 26, 2.2) + '</div></div></button>' : '') +
+    (SR || sh.jarvis || done ? '<button class="orb ' + (listening ? 'live' : '') + (done ? ' ok' : '') + '" data-act="listen" aria-label="Escuchar de nuevo" style="border:0;padding:0"><div><div>' + ic(done ? 'check' : 'mic', 26, 2.2) + '</div></div></button>' : '') +
     '<div class="vt">' +
     (done ? '<span class="muted" id="v-heard">“' + esc(sh.heard) + '”</span><span class="r">' + esc(sh.reply) + '</span>'
-          : SR ? '<span class="h">' + (listening ? 'Te escucho…' : 'Tocá el micrófono') + '</span><span class="muted" id="v-heard">' + (sh.heard ? '“' + esc(sh.heard) + '”' : 'Decí un comando o tocá un ejemplo') + '</span>'
+          : (SR || sh.jarvis) ? '<span class="h">' + (listening ? 'Te escucho…' : 'Tocá el micrófono') + '</span><span class="muted" id="v-heard">' + (sh.heard ? '“' + esc(sh.heard) + '”' : 'Decí un comando o tocá un ejemplo') + '</span>'
                : '<span class="h">¿Qué necesitás?</span><span class="muted" id="v-heard">Tocá un ejemplo o escribí el comando abajo</span>') +
     (sh.note && SR ? '<span class="muted small">' + esc(sh.note) + '</span>' : '') +
     '</div>' +
@@ -1507,6 +1699,7 @@ function init() {
   }
 }
 init();
+{ const jt = location.search.match(/[?&]jvtest=([^&]+)/); if (jt) jvTest(decodeURIComponent(jt[1]).split(',')); else setTimeout(jvStart, 2500); }
 </script>
 </body>
 </html>
