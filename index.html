@@ -1002,17 +1002,47 @@ const FSD = window.fullscreendy && typeof window.fullscreendy.textToSpeech === '
 // La WebView declara webkitSpeechRecognition pero no tiene reconocedor (sin servicios de Google): en el kiosco se escribe el comando.
 const SR = (FSD || (BOOT && BOOT.kiosk)) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
 let rec = null;
-function speak(text) {
-  if (!S.settings.speak) return;
-  if (FSD) { try { FSD.stopSpeech && FSD.stopSpeech(); FSD.textToSpeech(String(text)); } catch (e) { /* sin voz */ } return; }
-  if (!window.speechSynthesis) return;
+// Voz de respuesta: eSpeak (meSpeak, ~5 MB, sin servicios de Google) dentro de la página.
+// La WebView de Android no trae speechSynthesis y la voz de FullScreendy está fija en alemán.
+const MES = { base: 'https://cdn.jsdelivr.net/npm/mespeak@2.0.2/', m: null, loading: null, src: null };
+async function mesLoad() {
+  if (MES.m) return MES.m;
+  if (!MES.loading) MES.loading = (async () => {
+    const mod = await import(MES.base + '+esm');
+    const m = mod.default || mod;
+    m.loadConfig(await (await fetch(MES.base + 'src/mespeak_config.json')).json());
+    m.loadVoice(await (await fetch(MES.base + 'voices/es-la.json')).json());
+    MES.m = m; return m;
+  })();
+  return MES.loading;
+}
+// Dice los números como palabras simples para que eSpeak no lea "09:30" raro.
+function speakText(t) {
+  return String(t).replace(/(\d{1,2}):(\d{2})/g, (x, h, mm) => +h + (mm === '00' ? '' : ' y ' + +mm)).replace(/°/g, ' grados').replace(/[“”"]/g, '');
+}
+async function speak(text) {
+  if (!S.settings.speak || !text) return;
+  if (window.speechSynthesis && !FSD && !(BOOT && BOOT.kiosk)) {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'es-ES'; u.rate = 1.02;
+      const v = speechSynthesis.getVoices().find(x => /^es/i.test(x.lang));
+      if (v) { u.voice = v; speechSynthesis.speak(u); return; }
+    } catch (e) { /* sigue con eSpeak */ }
+  }
   try {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'es-ES'; u.rate = 1.02;
-    const v = speechSynthesis.getVoices().find(x => /^es/i.test(x.lang));
-    if (v) u.voice = v;
-    speechSynthesis.speak(u);
+    const m = await mesLoad();
+    const raw = m.speak(speakText(text), { voice: 'es-la', rawdata: 'array', speed: 150, pitch: 45, wordgap: 1 });
+    if (!raw || !raw.length) return;
+    unlockAudio(); if (!actx) return;
+    const buf = await actx.decodeAudioData(new Uint8Array(raw).buffer);
+    try { if (MES.src) MES.src.stop(); } catch (e) { /* nada */ }
+    const src = actx.createBufferSource(); const g = actx.createGain(); g.gain.value = 0.9;
+    src.buffer = buf; src.connect(g); g.connect(actx.destination); src.start();
+    MES.src = src;
+    // Mientras habla, Jarvis no escucha la palabra de activación (evita que se oiga a sí mismo).
+    JV.mute = Date.now() + buf.duration * 1000 + 400;
   } catch (e) { /* sin voz */ }
 }
 function openVoice() {
@@ -1066,7 +1096,8 @@ async function runCommand(text) {
   if (S.ui.sheet && S.ui.sheet.kind === 'voice') { S.ui.sheet.reply = reply; renderOverlay(); }
   speak(reply);
   clearTimeout(runCommand._t);
-  runCommand._t = setTimeout(() => { if (S.ui.sheet && S.ui.sheet.kind === 'voice' && S.ui.sheet.phase === 'done') closeSheet(); }, 4500);
+  runCommand._t = setTimeout(() => { if (S.ui.sheet && S.ui.sheet.kind === 'voice' && S.ui.sheet.phase === 'done') closeSheet(); }, sh && sh.jarvis ? 3000 : 4500);
+  if (sh && sh.jarvis) jvLog('respuesta', reply);
 }
 
 const NUMW = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, doce: 12, quince: 15, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50 };
@@ -1218,6 +1249,27 @@ const JV = {
   state: 'off', note: '', score: 0, peak: 0,
   mel: [], hist: [], q: Promise.resolve(), sess: null, model: null, rec: null, cmdT: null, cool: 0
 };
+const JV_VOCAB = ["hey","oye","ey","jarvis","yarvis","por","favor","gracias","agrega","agregá","agregar","agregue","añade","añadí","añadir","suma","sumá","pone","poné","poner","pon","anota","anotá","anotar","mete","saca","sacá","quita","quitá","borra","borrá","elimina","eliminá","tacha","tachá","cancela","cancelá","para","pará","detén","detené","a","al","el","la","los","las","un","una","uno","unos","unas","de","del","en","mi","con","que","qué","y","o","hay","tengo","tenemos","falta","faltan","lista","súper","super","supermercado","compras","compra","comprar","mercado","despensa","recordame","recuérdame","recordarme","acordame","recordatorio","tarea","tareas","nueva","nuevo","hacer","llamar","pagar","buscar","llevar","traer","limpiar","lavar","sacar","regar","cocinar","preparar","enviar","mandar","revisar","arreglar","basura","ropa","plantas","perro","gato","auto","luz","agua","gas","internet","alquiler","cuenta","factura","médico","doctor","turno","timer","temporizador","cronómetro","alarma","alarmas","despertador","despertame","despertarme","crea","creá","crear","configura","programa","segundo","segundos","minuto","minutos","hora","horas","media","cuarto","punto","mañana","tarde","noche","hoy","pasado","lunes","martes","miércoles","jueves","viernes","sábado","domingo","semana","días","todos","cero","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez","once","doce","trece","catorce","quince","dieciséis","diecisiete","dieciocho","diecinueve","veinte","veintiuno","veintidós","veintitrés","veinticuatro","veinticinco","treinta","cuarenta","cincuenta","sesenta","noventa","cien","es","son","cómo","está","clima","tiempo","temperatura","va","llover","lluvia","calor","frío","agenda","eventos","calendario","tema","modo","navideño","navidad","oscuro","claro","clásico","automático","ambiente","leche","pan","huevos","huevo","queso","manteca","mantequilla","yogur","yogurt","crema","dulce","harina","azúcar","sal","aceite","vinagre","arroz","fideos","pasta","tallarines","polenta","avena","cereal","galletas","galletitas","café","té","yerba","mate","cacao","chocolate","carne","pollo","cerdo","pescado","atún","jamón","salame","chorizo","milanesas","hamburguesas","salchichas","mortadela","tomate","tomates","cebolla","cebollas","papa","papas","zanahoria","zanahorias","lechuga","ajo","pimiento","morrón","zapallo","limón","limones","naranja","naranjas","manzana","manzanas","banana","bananas","pera","frutas","fruta","verdura","verduras","uva","frutilla","frutillas","palta","mandioca","choclo","tortillas","empanadas","pizza","gaseosa","jugo","cerveza","vino","soda","hielo","detergente","lavandina","jabón","shampoo","champú","acondicionador","dental","cepillo","papel","higiénico","servilletas","rollo","cocina","esponja","bolsas","bolsa","desodorante","pañales","toallitas","suavizante","limpiador","desinfectante","fósforos","pilas","foco","focos","velas","mayonesa","ketchup","mostaza","salsa","caldo","condimento","orégano","pimienta","legumbres","lentejas","porotos","garbanzos","mermelada","miel","tostadas","lactal","[unk]"];
+// Junta el resultado de los dos reconocedores: usa el cerrado si entendió todo; si no, el abierto.
+JV.got = {};
+function jvPick(which, text) {
+  if (JV.state !== 'command' && JV.state !== 'flush') return;
+  if (JV.state === 'command' && !text) return;
+  JV.got[which] = text;
+  const decide = () => {
+    if (JV.state !== 'command' && JV.state !== 'flush') return;
+    const g = (JV.got.g || '').replace(/\s+/g, ' ').trim(), o = (JV.got.o || '').trim();
+    const gOk = g && !/\[unk\]/.test(g) && g.split(' ').length >= 2;
+    jvLog('elige', { g: g, o: o, usa: gOk ? 'cerrado' : 'abierto' });
+    jvFinish(gOk ? g : (o || g.replace(/\[unk\]/g, '').trim()));
+  };
+  clearTimeout(JV.pickT);
+  if (JV.got.g !== undefined && JV.got.o !== undefined) decide();
+  else JV.pickT = setTimeout(decide, JV.recG ? 900 : 0);
+}
+// Registro de las últimas interacciones (para diagnóstico).
+JV.log = [];
+function jvLog(k, v) { JV.log.push([new Date().toLocaleTimeString(), k, v]); if (JV.log.length > 60) JV.log.shift(); }
 const jvWanted = () => S.settings.jarvis !== false && (FSD || (BOOT && BOOT.kiosk) || /[?&]jarvis=1/.test(location.search));
 const jvScript = url => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = url; s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar ' + url)); document.head.appendChild(s); });
 function jvSet(state, note) {
@@ -1247,16 +1299,17 @@ async function jvLoadVosk() {
   if (!window.Vosk) await jvScript(JV.VOSK);
   JV.model = await Vosk.createModel(JV.VOSK_MODEL);
   JV.rec = new JV.model.KaldiRecognizer(JV.RATE);
+  // Segundo reconocedor con vocabulario cerrado: mucho más preciso para comandos y compras habituales.
+  try {
+    JV.recG = new JV.model.KaldiRecognizer(JV.RATE, JSON.stringify(JV_VOCAB));
+    JV.recG.on('result', m => jvPick('g', ((m.result && m.result.text) || '').trim()));
+  } catch (e) { JV.recG = null; }
   JV.rec.on('partialresult', m => {
     if (JV.state !== 'command') return;
     const sh = S.ui.sheet; const t = (m.result && m.result.partial) || '';
     if (sh && sh.kind === 'voice' && sh.phase === 'listen' && t) { sh.heard = t; const el = $('v-heard'); if (el) el.textContent = '“' + t + '”'; }
   });
-  JV.rec.on('result', m => {
-    const t = ((m.result && m.result.text) || '').trim();
-    if (JV.state === 'command' && t) jvFinish(t);
-    else if (JV.state === 'flush') jvFinish(t);
-  });
+  JV.rec.on('result', m => jvPick('o', ((m.result && m.result.text) || '').trim()));
   JV.rec.on('error', m => jvSet('error', 'dictado: ' + String((m && m.error) || m).slice(0, 80)));
 }
 // Un bloque de 80 ms -> puntaje de "hey jarvis" (0..1). Devuelve el máximo del bloque.
@@ -1283,37 +1336,42 @@ async function jvWake(chunk) {
   return best;
 }
 function jvFeed(chunk) {
-  if (JV.state === 'command') { if (JV.rec) JV.rec.acceptWaveformFloat(chunk, JV.RATE); return; }
+  if (JV.state === 'command') { if (JV.rec) JV.rec.acceptWaveformFloat(chunk, JV.RATE); if (JV.recG) JV.recG.acceptWaveformFloat(chunk, JV.RATE); return; }
   if (JV.state === 'flush') return;
   if (JV.state !== 'wake') return;
   JV.q = JV.q.then(async () => {
     if (JV.state !== 'wake') return;
     const score = await jvWake(chunk);
     JV.score = score;
-    if (score > JV.THRESHOLD && Date.now() > JV.cool) jvHeard();
+    if (score > JV.THRESHOLD && Date.now() > JV.cool && Date.now() > (JV.mute || 0)) jvHeard();
   }).catch(e => jvSet('error', String(e.message || e)));
 }
 function jvHeard() {
   S.lastInput = Date.now(); exitAmbient(); unlockAudio(); beep();
   if (!JV.rec) { toast('Jarvis todavía está cargando el dictado…'); JV.cool = Date.now() + 3000; return; }
+  JV.got = {}; clearTimeout(JV.pickT); jvLog('hey jarvis', +JV.score.toFixed(2));
   S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '', jarvis: true };
   renderOverlay();
   jvSet('command');
   clearTimeout(JV.cmdT);
   JV.cmdT = setTimeout(() => {
     if (JV.state !== 'command') return;
-    JV.state = 'flush'; JV.rec.retrieveFinalResult();
+    JV.state = 'flush'; JV.rec.retrieveFinalResult(); if (JV.recG) JV.recG.retrieveFinalResult();
     JV.cmdT = setTimeout(() => { if (JV.state === 'flush') jvFinish(''); }, 2500);
   }, JV.CMD_MS);
 }
 function jvFinish(text) {
-  clearTimeout(JV.cmdT);
+  clearTimeout(JV.cmdT); clearTimeout(JV.pickT); jvLog('dijo', text);
   jvResetWake(); JV.cool = Date.now() + 1500;
   jvSet('wake');
   text = text.replace(/^(hey |oye |ey )?(jarvis|yarbis|yarvis)\s*/i, '').trim();
   if (text) runCommand(text);
   else if (S.ui.sheet && S.ui.sheet.jarvis) closeSheet();
 }
+setInterval(() => {
+  const sh = S.ui.sheet;
+  if (sh && sh.jarvis) { sh._t = sh._t || Date.now(); if (Date.now() - sh._t > 14000) { jvLog('cierre forzado', JV.state); JV.state = JV.state === 'off' ? 'off' : 'wake'; jvSet(JV.state); closeSheet(); } }
+}, 1000);
 async function jvStart() {
   if (!jvWanted() || JV.state !== 'off') return;
   if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
@@ -1337,7 +1395,7 @@ async function jvStart() {
     JV.ctx = ctx;
     if (ctx.state === 'suspended') { const res = () => ctx.resume(); document.addEventListener('pointerdown', res, { once: true }); try { await ctx.resume(); } catch (e) { /* espera un toque */ } }
     jvSet('wake');
-    jvLoadVosk().catch(e => jvSet('error', 'dictado: ' + (e.message || e)));
+    jvLoadVosk().then(() => setTimeout(() => mesLoad().catch(() => {}), 3000)).catch(e => jvSet('error', 'dictado: ' + (e.message || e)));
   } catch (e) { jvSet('error', String(e.message || e)); }
 }
 // Pruebas sin micrófono: ?jvtest=archivo1.wav,archivo2.wav (se piden al mismo servidor y se informa a /jvlog).
