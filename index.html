@@ -1300,10 +1300,9 @@ async function jvLoadVosk() {
   JV.model = await Vosk.createModel(JV.VOSK_MODEL);
   JV.rec = new JV.model.KaldiRecognizer(JV.RATE);
   // Segundo reconocedor con vocabulario cerrado: mucho más preciso para comandos y compras habituales.
-  try {
-    JV.recG = new JV.model.KaldiRecognizer(JV.RATE, JSON.stringify(JV_VOCAB));
-    JV.recG.on('result', m => jvPick('g', ((m.result && m.result.text) || '').trim()));
-  } catch (e) { JV.recG = null; }
+  // Un segundo reconocedor con vocabulario cerrado (JV_VOCAB) mejora la precisión, pero dos a la vez son
+  // demasiado lentos para esta tablet: los resultados llegan tarde. Queda desactivado.
+  JV.recG = null;
   JV.rec.on('partialresult', m => {
     if (JV.state !== 'command') return;
     const sh = S.ui.sheet; const t = (m.result && m.result.partial) || '';
