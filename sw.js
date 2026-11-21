@@ -1,5 +1,5 @@
 /* Casa · Service worker: abre aunque se caiga internet un momento. */
-const CACHE = 'casa-v1.2.0';
+const CACHE = 'casa-v1.2.1';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

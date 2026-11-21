@@ -1246,6 +1246,18 @@ async function jvLoadWake() {
 async function jvLoadVosk() {
   if (!window.Vosk) await jvScript(JV.VOSK);
   JV.model = await Vosk.createModel(JV.VOSK_MODEL);
+  JV.rec = new JV.model.KaldiRecognizer(JV.RATE);
+  JV.rec.on('partialresult', m => {
+    if (JV.state !== 'command') return;
+    const sh = S.ui.sheet; const t = (m.result && m.result.partial) || '';
+    if (sh && sh.kind === 'voice' && sh.phase === 'listen' && t) { sh.heard = t; const el = $('v-heard'); if (el) el.textContent = '“' + t + '”'; }
+  });
+  JV.rec.on('result', m => {
+    const t = ((m.result && m.result.text) || '').trim();
+    if (JV.state === 'command' && t) jvFinish(t);
+    else if (JV.state === 'flush') jvFinish(t);
+  });
+  JV.rec.on('error', m => jvSet('error', 'dictado: ' + String((m && m.error) || m).slice(0, 80)));
 }
 // Un bloque de 80 ms -> puntaje de "hey jarvis" (0..1). Devuelve el máximo del bloque.
 async function jvWake(chunk) {
@@ -1272,6 +1284,7 @@ async function jvWake(chunk) {
 }
 function jvFeed(chunk) {
   if (JV.state === 'command') { if (JV.rec) JV.rec.acceptWaveformFloat(chunk, JV.RATE); return; }
+  if (JV.state === 'flush') return;
   if (JV.state !== 'wake') return;
   JV.q = JV.q.then(async () => {
     if (JV.state !== 'wake') return;
@@ -1282,19 +1295,16 @@ function jvFeed(chunk) {
 }
 function jvHeard() {
   S.lastInput = Date.now(); exitAmbient(); unlockAudio(); beep();
-  if (!JV.model) { toast('Jarvis todavía está cargando el dictado…'); JV.cool = Date.now() + 3000; return; }
-  if (JV.rec) { try { JV.rec.remove(); } catch (e) { /* nada */ } }
-  JV.rec = new JV.model.KaldiRecognizer(JV.RATE);
-  JV.rec.on('partialresult', m => {
-    const sh = S.ui.sheet; const t = (m.result && m.result.partial) || '';
-    if (sh && sh.kind === 'voice' && sh.phase === 'listen' && t) { sh.heard = t; const el = $('v-heard'); if (el) el.textContent = '“' + t + '”'; }
-  });
-  JV.rec.on('result', m => { const t = ((m.result && m.result.text) || '').trim(); if (t && JV.state === 'command') jvFinish(t); });
+  if (!JV.rec) { toast('Jarvis todavía está cargando el dictado…'); JV.cool = Date.now() + 3000; return; }
   S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '', jarvis: true };
   renderOverlay();
   jvSet('command');
   clearTimeout(JV.cmdT);
-  JV.cmdT = setTimeout(() => { if (JV.state === 'command') jvFinish(''); }, JV.CMD_MS);
+  JV.cmdT = setTimeout(() => {
+    if (JV.state !== 'command') return;
+    JV.state = 'flush'; JV.rec.retrieveFinalResult();
+    JV.cmdT = setTimeout(() => { if (JV.state === 'flush') jvFinish(''); }, 2500);
+  }, JV.CMD_MS);
 }
 function jvFinish(text) {
   clearTimeout(JV.cmdT);
