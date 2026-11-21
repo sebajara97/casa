@@ -1,0 +1,1442 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0E13">
+<title>Casa · Panel Echo</title>
+<script>window.CASA_BOOT = "__CASA_BOOT__";
+try { var _m = location.hash.match(/cfg=([A-Za-z0-9+\/=_-]+)/); if (_m && typeof window.CASA_BOOT !== 'object') window.CASA_BOOT = JSON.parse(decodeURIComponent(escape(atob(_m[1].replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) {}
+</script>
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+/* Panel estilo Echo Show / Nest Hub. Lienzo fijo de 1280×800 escalado a la pantalla:
+   se ve igual en la tablet de 8" y en una de 10". Solo transform/opacity animan (GPU). */
+:root {
+  --bg: #0B0E13; --card: #161B23; --panel: #12161D; --hi: #1C2330; --line: #232A36;
+  --text: #F2F4F7; --soft: #C9D1DC; --muted: #9AA4B2; --dim: #6E7887;
+  --blue: #5B9BFF; --blueSoft: #9DB8FF; --green: #3ECF8E; --orange: #FFB86B; --violet: #8F8CFF; --red: #FF7A7A;
+  --display: Outfit, Inter, system-ui, sans-serif; --font: Inter, system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+body { color: var(--text); font-family: var(--font); -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+button, input, select { font-family: inherit; color: inherit; }
+button { cursor: pointer; }
+#stage { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform-origin: 0 0; overflow: hidden; background: var(--bg); }
+#track { display: flex; width: 5120px; height: 800px; will-change: transform; transform: translate3d(0,0,0); touch-action: pan-y; }
+#track.anim { transition: transform 360ms cubic-bezier(.2,.8,.2,1); }
+.pg { width: 1280px; height: 800px; flex-shrink: 0; padding: 40px 52px 76px; display: flex; gap: 36px; contain: layout paint; }
+
+/* Inicio */
+.left { width: 560px; display: flex; flex-direction: column; gap: 24px; }
+#clock { font-family: var(--display); font-weight: 200; font-size: 176px; line-height: .95; letter-spacing: -4px; }
+#date { font-size: 34px; font-weight: 500; color: var(--soft); }
+.wx { display: flex; align-items: center; gap: 22px; }
+#wx-ic { color: var(--orange); width: 96px; height: 96px; }
+#wx-ic svg { width: 96px; height: 96px; stroke-width: 1.5; }
+#wx-temp { font-family: var(--display); font-weight: 300; font-size: 84px; line-height: 1; }
+#wx-desc { font-size: 26px; color: var(--soft); }
+.cards { margin-top: auto; display: flex; gap: 18px; }
+.card { background: var(--card); border-radius: 28px; padding: 22px 26px; display: flex; flex-direction: column; gap: 8px; min-width: 0; border: 0; text-align: left; }
+.card .lbl { display: flex; align-items: center; gap: 10px; font-size: 23px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .big { font-family: var(--display); font-size: 62px; font-weight: 400; line-height: 1; }
+.bar { height: 10px; border-radius: 5px; background: #2A313C; overflow: hidden; }
+.bar > div { height: 100%; background: var(--blue); border-radius: 5px; }
+.right { flex: 1; min-width: 0; background: var(--panel); border-radius: 36px; padding: 30px 34px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.hrow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+h2 { margin: 0; font-size: 40px; font-weight: 600; }
+h3 { margin: 8px 0 0; font-size: 28px; font-weight: 600; color: var(--soft); }
+.meta { font-size: 24px; color: var(--muted); }
+.ev { display: flex; gap: 20px; align-items: center; padding: 16px 22px; border-radius: 22px; }
+.ev.next { background: var(--hi); }
+.ev .dot { width: 9px; align-self: stretch; border-radius: 5px; flex-shrink: 0; }
+.ev .t { font-family: var(--display); font-size: 38px; font-weight: 500; width: 112px; flex-shrink: 0; }
+.ev .t.ad { font-size: 22px; font-family: var(--font); color: var(--soft); }
+.ev .n { font-size: 30px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev .s { font-size: 22px; color: var(--blueSoft); }
+.empty { font-size: 28px; color: var(--muted); padding: 18px 4px; }
+
+/* Listas */
+.col { flex: 1; min-width: 0; background: var(--panel); border-radius: 36px; padding: 28px 32px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.items { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.it { display: flex; align-items: center; gap: 20px; width: 100%; min-height: 72px; padding: 8px 4px; background: transparent; border: 0; border-bottom: 1px solid var(--line); text-align: left; }
+.box { width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; border: 3px solid #5B6574; display: flex; align-items: center; justify-content: center; }
+.it.done .box { background: var(--green); border: 0; color: #0B0E13; }
+.it .tx { font-size: 32px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.it.done .tx { color: var(--dim); text-decoration: line-through; }
+.it .due { font-size: 20px; color: var(--muted); flex-shrink: 0; }
+.it .due.late { color: var(--red); }
+.add { display: flex; gap: 12px; margin-top: 12px; }
+.add input { flex: 1; min-width: 0; height: 64px; border-radius: 20px; border: 2px solid var(--line); background: var(--bg); padding: 0 20px; font-size: 26px; }
+.add input::placeholder { color: var(--dim); }
+.btn { height: 64px; min-width: 64px; border-radius: 20px; border: 0; background: var(--hi); font-size: 24px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; }
+.btn.pri { background: var(--blue); color: #08111F; }
+.link { background: none; border: 0; color: var(--blueSoft); font-size: 22px; padding: 6px 0; }
+
+/* Semana */
+.fc { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.fd { background: var(--card); border-radius: 24px; padding: 18px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.fd .d { font-size: 24px; color: var(--soft); font-weight: 600; }
+.fd svg { width: 52px; height: 52px; }
+.fd .h { font-family: var(--display); font-size: 40px; }
+.fd .l { font-size: 22px; color: var(--muted); }
+.fd .p { font-size: 20px; color: var(--blueSoft); }
+.wk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; overflow: hidden; }
+.wd { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.wd .dh { font-size: 24px; font-weight: 600; color: var(--soft); }
+.wd .we { font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wd .we b { font-family: var(--display); font-weight: 500; color: var(--blueSoft); margin-right: 10px; }
+.wd .none { font-size: 22px; color: var(--dim); }
+
+/* Timers y alarmas */
+.presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.pre { height: 92px; border-radius: 24px; border: 0; background: var(--card); font-family: var(--display); font-size: 38px; }
+.tm { background: var(--card); border-radius: 24px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
+.tm .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.tm .lbl { font-size: 22px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm .big { font-family: var(--display); font-size: 52px; line-height: 1; }
+.tm.done .big { color: var(--orange); }
+.rb { width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--hi); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.al { display: flex; align-items: center; gap: 16px; padding: 12px 4px; border-bottom: 1px solid var(--line); }
+.al .big { font-family: var(--display); font-size: 48px; }
+.al.off .big { color: var(--dim); }
+.sw { width: 84px; height: 48px; border-radius: 24px; border: 0; background: #39414D; position: relative; flex-shrink: 0; }
+.sw::after { content: ''; position: absolute; top: 5px; left: 5px; width: 38px; height: 38px; border-radius: 50%; background: #F2F4F7; transition: transform 200ms; }
+.sw[aria-checked="true"] { background: var(--green); }
+.sw[aria-checked="true"]::after { transform: translateX(36px); }
+.tin { height: 64px; border-radius: 20px; border: 2px solid var(--line); background: var(--bg); font-size: 26px; padding: 0 14px; }
+
+/* Barra superior y puntos */
+#top { position: absolute; bottom: 4px; right: 24px; display: flex; align-items: center; gap: 14px; z-index: 3; }
+#status { font-size: 18px; color: var(--dim); }
+#mic { width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--card); color: var(--blueSoft); display: flex; align-items: center; justify-content: center; }
+#dots { position: absolute; left: 0; right: 0; bottom: 18px; display: flex; justify-content: center; gap: 14px; z-index: 3; }
+#dots button { width: 14px; height: 14px; border-radius: 7px; border: 0; padding: 0; background: #4A5361; transition: width 250ms, background 250ms; }
+#dots button[aria-current="true"] { width: 36px; background: #F2F4F7; }
+#dots button::before { content: ''; position: absolute; margin: -16px; width: 46px; height: 46px; }
+
+/* Capas: voz, timbre, reloj nocturno */
+#ov { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+#ov.on { pointer-events: auto; }
+.vs { position: absolute; left: 0; right: 0; bottom: 0; height: 340px; background: linear-gradient(to top, rgba(11,14,19,.98) 55%, rgba(11,14,19,0)); display: flex; flex-direction: column; justify-content: flex-end; padding: 0 64px 54px; gap: 12px; }
+.vs .heard { font-size: 44px; font-weight: 500; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vs .reply { font-size: 40px; font-weight: 600; color: var(--text); }
+.vs .glow { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: linear-gradient(90deg, #3E7BFF, #7FD1FF, #3E7BFF); transform-origin: 50% 50%; animation: glow 1.2s ease-in-out infinite; }
+.vs.thinking .glow { animation-duration: .5s; }
+.vs.done .glow { animation: none; opacity: .4; }
+@keyframes glow { 0%,100% { transform: scaleX(.35); opacity: .7; } 50% { transform: scaleX(1); opacity: 1; } }
+.rg { position: absolute; inset: 0; background: rgba(11,14,19,.96); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.rg .t1 { font-size: 40px; color: var(--orange); font-weight: 600; }
+.rg .t2 { font-family: var(--display); font-size: 120px; font-weight: 300; }
+.rg .stop { margin-top: 20px; height: 110px; padding: 0 80px; border-radius: 55px; border: 0; background: var(--orange); color: #1A1208; font-size: 44px; font-weight: 700; }
+.amb { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.amb .c { font-family: var(--display); font-weight: 200; font-size: 260px; line-height: 1; color: #C9D1DC; }
+.amb.night .c { color: #8A5A44; }
+.amb .s { font-size: 34px; color: #7D8794; }
+.amb.night .s { color: #5E4436; }
+#toast { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: #2A313C; padding: 16px 26px; border-radius: 18px; font-size: 24px; z-index: 12; opacity: 0; transition: opacity 250ms; pointer-events: none; }
+#toast.on { opacity: 1; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="track">
+    <section class="pg" id="pg0" aria-label="Inicio">
+      <div class="left">
+        <div><div id="clock">--:--</div><div id="date"></div></div>
+        <div class="wx"><div id="wx-ic" aria-hidden="true"></div><div><div id="wx-temp">--°</div><div id="wx-desc"></div></div></div>
+        <div class="cards" id="home-cards"></div>
+      </div>
+      <div class="right">
+        <div class="hrow"><h2>Hoy</h2><span class="meta" id="today-meta"></span></div>
+        <div id="today"></div>
+        <h3 id="tom-h">Mañana</h3>
+        <div id="tom"></div>
+      </div>
+    </section>
+
+    <section class="pg" id="pg1" aria-label="Tareas y compras">
+      <div class="col">
+        <div class="hrow"><h2>Tareas</h2><span class="meta" id="t-meta"></span></div>
+        <div class="items" id="tasks"></div>
+        <div class="hrow"><button class="link" data-act="clear" data-arg="tasks">Limpiar tachadas</button></div>
+        <form class="add" data-form="tasks"><label class="sr" for="in-t">Nueva tarea</label><input id="in-t" placeholder="Nueva tarea…" autocomplete="off"><button class="btn pri" aria-label="Agregar tarea">+</button></form>
+      </div>
+      <div class="col">
+        <div class="hrow"><h2>Compras</h2><span class="meta" id="s-meta"></span></div>
+        <div class="items" id="shop"></div>
+        <div class="hrow"><button class="link" data-act="clear" data-arg="shop">Limpiar tachadas</button></div>
+        <form class="add" data-form="shop"><label class="sr" for="in-s">Agregar a compras</label><input id="in-s" placeholder="Agregar a compras…" autocomplete="off"><button class="btn pri" aria-label="Agregar a compras">+</button></form>
+      </div>
+    </section>
+
+    <section class="pg" id="pg2" aria-label="Semana" style="flex-direction: column; gap: 22px">
+      <div class="hrow"><h2>Pronóstico</h2><span class="meta" id="fc-meta"></span></div>
+      <div class="fc" id="fc"></div>
+      <div class="hrow"><h2>Próximos días</h2></div>
+      <div class="wk" id="week"></div>
+    </section>
+
+    <section class="pg" id="pg3" aria-label="Timers y alarmas">
+      <div class="col">
+        <div class="hrow"><h2>Timers</h2><span class="meta" id="tm-meta"></span></div>
+        <div class="presets" id="presets"></div>
+        <div id="timers" style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px; overflow: hidden"></div>
+      </div>
+      <div class="col">
+        <div class="hrow"><h2>Alarmas</h2><span class="meta" id="al-meta"></span></div>
+        <div class="items" id="alarms"></div>
+        <div class="add"><label class="sr" for="al-time">Hora</label><input class="tin" type="time" id="al-time" value="07:00" style="flex: 1.5; min-width: 0">
+          <label class="sr" for="al-days">Repetir</label><select class="tin" id="al-days"><option value="once">Una vez</option><option value="wk">Lun a vie</option><option value="all">Todos los días</option><option value="we">Sáb y dom</option></select>
+          <button class="btn pri" data-act="aadd" aria-label="Agregar alarma">+</button></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="top"><span id="status"></span><button id="mic" data-act="talk" aria-label="Hablar con Jarvis"></button></div>
+  <nav id="dots" aria-label="Pantallas">
+    <button data-act="go" data-arg="0" aria-label="Inicio"></button>
+    <button data-act="go" data-arg="1" aria-label="Tareas y compras"></button>
+    <button data-act="go" data-arg="2" aria-label="Semana"></button>
+    <button data-act="go" data-arg="3" aria-label="Timers y alarmas"></button>
+  </nav>
+  <div id="ov"></div>
+  <div id="toast" role="status"></div>
+</div>
+<script>
+/* ======================= Motor compartido (copiado de index.html) ======================= */
+'use strict';
+/* =====================================================================
+   Casa · Dashboard familiar
+   - Datos: Google Calendar + Google Tasks vía Apps Script (Ajustes → Conexión)
+   - Clima: Open-Meteo (sin clave)
+   - Timers, alarmas, temas y ajustes: se guardan en este dispositivo
+   ===================================================================== */
+
+const VERSION = '1.0.0';
+
+/* ---------------------------- Utilidades ---------------------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const hm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const cap = s => { s = String(s || '').trim(); return s.charAt(0).toUpperCase() + s.slice(1); };
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('casa.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('casa.' + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+};
+const DS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DL = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const MO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/* ---------------------------- Íconos ---------------------------- */
+const P = {
+  mic: 'M9 3h6v11H9zM5 11a7 7 0 0 0 14 0M12 18v3',
+  palette: 'M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.7 4.7 0 0 0 21 9.7C21 5.9 17 3 12 3zM7.5 11.5h.01M9.5 7.5h.01M14.5 7.5h.01M17 11h.01',
+  gear: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+  frame: 'M3 4h18v14H3zM3 14l5-4 4 3 3-2 6 4M9 21h6',
+  timer: 'M12 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 9v4l2.5 2M9 2h6',
+  alarm: 'M12 5.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15zM12 9.5V13l2 1.5M4 4.5 6.5 2.5M20 4.5 17.5 2.5',
+  cal: 'M6 5h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM3 10h18M8 3v4M16 3v4',
+  tasks: 'M10 6h10M10 12h10M10 18h10M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17',
+  cart: 'M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6M10 20.5h.01M17 20.5h.01',
+  plus: 'M12 5v14M5 12h14',
+  check: 'M5 12.5l4.5 4.5L19 7',
+  x: 'M6 6l12 12M18 6 6 18',
+  play: 'M8 5.5v13l10-6.5z',
+  pause: 'M9 5v14M15 5v14',
+  reset: 'M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6',
+  send: 'M12 19V5M6 11l6-6 6 6',
+  tree: 'M12 2l5 7h-3l4 6h-4l3 5H7l3-5H6l4-6H7zM12 20v2',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
+  partly: 'M8 2.5V4M3 8H1.5M4.5 4.5l1 1M11.8 7.2A4 4 0 0 0 4.6 9.6M9 20h8a3.5 3.5 0 0 0 .4-6.98A5 5 0 0 0 8 13.2 3.4 3.4 0 0 0 9 20z',
+  cloud: 'M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 11 3.5 3.5 0 0 0 7 18z',
+  rain: 'M7 15h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 8 3.5 3.5 0 0 0 7 15zM9 18l-1 3M13 18l-1 3M17 18l-1 3',
+  storm: 'M7 15h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 8 3.5 3.5 0 0 0 7 15zM12 15l-2 4h4l-2 4',
+  snow: 'M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9.5 3.5 12 6l2.5-2.5M9.5 20.5 12 18l2.5 2.5',
+  fog: 'M4 10h16M4 14h16M6 18h12M7 6h10'
+};
+const ic = (name, size, sw, fill) => '<svg width="' + (size || 20) + '" height="' + (size || 20) + '" viewBox="0 0 24 24" fill="' + (fill || 'none') + '" stroke="currentColor" stroke-width="' + (sw || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + P[name] + '"/></svg>';
+
+/* ---------------------------- Temas ---------------------------- */
+const THEMES = {
+  clasico:   { name: 'Clásico',       desc: 'Claro y limpio',                     bg: '#F2F1EE', card: '#FFFFFF', accent: '#2F6FEB', meta: '#F2F1EE' },
+  noche:     { name: 'Noche',         desc: 'Oscuro, ideal de noche',             bg: '#0E0F11', card: '#1A1B1F', accent: '#3B6FE0', meta: '#0E0F11' },
+  navidad:   { name: 'Navidad',       desc: 'Guirnalda, nieve y cuenta regresiva', bg: '#0F241B', card: '#173326', accent: '#C8312C', meta: '#0F241B', festive: true },
+  verano:    { name: 'Verano',        desc: 'Cálido y luminoso',                  bg: '#FFF4E6', card: '#FFFFFF', accent: '#C2410C', meta: '#FFF4E6' },
+  asistente: { name: 'Smart display', desc: 'Fondo profundo, letras grandes',     bg: 'linear-gradient(160deg,#0A1622,#0B2A3A)', card: '#112334', accent: '#0B7FB8', meta: '#0A1622' },
+  material:  { name: 'Material',      desc: 'Tonos suaves, formas redondas',      bg: '#FBF9F2', card: '#ECE8DC', accent: '#4A6440', meta: '#FBF9F2' },
+  cristal:   { name: 'Cristal',       desc: 'Translúcido · más pesado para tablets viejas', bg: 'linear-gradient(135deg,#FFD3B6,#B9D7FF 55%,#D8C8FF)', card: 'rgba(255,255,255,.6)', accent: '#0066D6', meta: '#EEF0F6' }
+};
+function resolveTheme(sel, d) {
+  if (sel && sel !== 'auto' && THEMES[sel]) return sel;
+  const m = d.getMonth(), day = d.getDate(), h = d.getHours();
+  if (m === 11 || (m === 0 && day <= 6)) return 'navidad';
+  if (m === 0 || m === 1) return 'verano';
+  return (h >= 21 || h < 6) ? 'noche' : 'clasico';
+}
+
+/* ---------------------------- Estado ---------------------------- */
+const DEFAULTS = {
+  apiUrl: '', token: '', theme: 'auto', anim: true, ambientMin: 5, nightDim: true, nightFrom: 22, nightTo: 6,
+  speak: true, jarvis: true, lang: 'es-PY', lat: null, lon: null, place: '', days: 7
+};
+const S = {
+  settings: Object.assign({}, DEFAULTS, LS.get('settings', {})),
+  data: { events: [], tasks: [], shop: [], calendars: [] },
+  weather: null,
+  timers: LS.get('timers', []),
+  alarms: LS.get('alarms', [{ id: 'a1', time: '06:30', label: 'Despertador', days: [1, 2, 3, 4, 5], on: true }]),
+  ui: { tab: 'agenda', ta: 'timers', day: 0, sheet: null, ambient: false, ring: null },
+  sync: { last: 0, ok: null, error: '', busy: false, pending: 0 },
+  lastInput: Date.now(),
+  themeId: 'clasico'
+};
+// Servida desde Apps Script: el script inyecta su propia URL y la clave, así la tablet no necesita configurarlas.
+const BOOT = (window.CASA_BOOT && typeof window.CASA_BOOT === 'object') ? window.CASA_BOOT : null;
+if (BOOT && BOOT.apiUrl && BOOT.token) { S.settings.apiUrl = BOOT.apiUrl; S.settings.token = BOOT.token; }
+if (BOOT && BOOT.lat != null && S.settings.lat == null) { S.settings.lat = BOOT.lat; S.settings.lon = BOOT.lon; S.settings.place = BOOT.place || ''; }
+const isDemo = () => !S.settings.apiUrl || !S.settings.token;
+const saveSettings = () => LS.set('settings', S.settings);
+const saveTimers = () => LS.set('timers', S.timers);
+const saveAlarms = () => LS.set('alarms', S.alarms);
+
+/* ---------------------------- Datos demo ---------------------------- */
+function demoData() {
+  const t = new Date();
+  const at = (dd, h, m) => new Date(t.getFullYear(), t.getMonth(), t.getDate() + dd, h, m).toISOString();
+  const cal = [{ name: 'Familia', color: '#2E9E5B' }, { name: 'Trabajo', color: '#2F6FEB' }, { name: 'Pareja', color: '#E8833A' }];
+  const ev = (dd, h, m, title, c) => ({ id: 'd' + dd + h + m, title: title, allDay: false, start: at(dd, h, m), end: at(dd, h + 1, m), calendar: cal[c].name, color: cal[c].color });
+  return {
+    calendars: cal,
+    events: [
+      ev(0, 9, 0, 'Caminata', 2), ev(0, 13, 0, 'Almuerzo familiar', 0), ev(0, 17, 30, 'Supermercado', 2), ev(0, 20, 0, 'Preparar viandas', 1),
+      ev(1, 7, 0, 'Gimnasio', 1), ev(1, 9, 0, 'Daily del equipo', 1), ev(1, 18, 30, 'Clase de yoga', 2),
+      ev(2, 19, 0, 'Pagar servicios', 0), ev(4, 21, 0, 'Cena con amigos', 0),
+      { id: 'dall', title: 'Armar el arbolito', allDay: true, date: ymd(addDays(t, 5)), endDate: ymd(addDays(t, 6)), calendar: 'Familia', color: '#2E9E5B' }
+    ],
+    tasks: [
+      { id: 't1', listId: 'tasks', title: 'Sacar la basura', done: false, due: ymd(t) },
+      { id: 't2', listId: 'tasks', title: 'Llamar al técnico del aire', done: false, due: ymd(addDays(t, 1)) },
+      { id: 't3', listId: 'tasks', title: 'Regar las plantas', done: false, due: null },
+      { id: 't4', listId: 'tasks', title: 'Pagar internet', done: true, due: null }
+    ],
+    shop: [
+      { id: 's1', listId: 'shop', title: 'Leche', done: false }, { id: 's2', listId: 'shop', title: 'Huevos', done: false },
+      { id: 's3', listId: 'shop', title: 'Pan', done: false }, { id: 's4', listId: 'shop', title: 'Tomates', done: false },
+      { id: 's5', listId: 'shop', title: 'Detergente', done: true }
+    ]
+  };
+}
+
+/* ---------------------------- API ---------------------------- */
+async function apiGet(action, extra) {
+  const s = S.settings;
+  const url = s.apiUrl + (s.apiUrl.indexOf('?') >= 0 ? '&' : '?') + 'action=' + action + '&token=' + encodeURIComponent(s.token) + (extra || '');
+  const r = await fetch(url, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+async function apiPost(action, payload) {
+  const s = S.settings;
+  const r = await fetch(s.apiUrl, { method: 'POST', redirect: 'follow', body: JSON.stringify(Object.assign({ token: s.token, action: action }, payload || {})) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'error');
+  return j;
+}
+
+async function sync() {
+  if (isDemo()) { renderHeader(); return; }
+  if (S.sync.busy || S.sync.pending > 0) { S.sync.again = true; return; }
+  S.sync.busy = true; S.sync.again = false;
+  const gen = S.sync.gen || 0;
+  try {
+    const j = await apiGet('summary', '&days=' + (S.settings.days || 7));
+    if (!j.ok) throw new Error(j.error === 'unauthorized' ? 'clave incorrecta' : (j.error || 'error'));
+    // Solo aplicar si no hubo cambios locales mientras se descargaba
+    if (S.sync.pending === 0 && (S.sync.gen || 0) === gen) {
+      S.data = j.data;
+      LS.set('cache', j.data);
+    } else {
+      S.sync.again = true;
+    }
+    S.sync.ok = true; S.sync.error = ''; S.sync.last = Date.now();
+  } catch (e) {
+    S.sync.ok = false; S.sync.error = e.message || String(e);
+  } finally {
+    S.sync.busy = false;
+  }
+  renderAgenda(); renderLists(); renderHeader(); renderTabs();
+  if (S.sync.again && S.sync.pending === 0) { S.sync.again = false; setTimeout(sync, 300); }
+}
+
+async function mutate(fn) {
+  S.sync.pending++;
+  S.sync.gen = (S.sync.gen || 0) + 1;
+  renderLists(); renderTabs();
+  try {
+    if (!isDemo()) await fn();
+  } catch (e) {
+    toast('No se pudo guardar: ' + (e.message || e));
+  } finally {
+    S.sync.pending--;
+    if (isDemo()) {
+      S.data.tasks.forEach(x => { delete x.pending; });
+      S.data.shop.forEach(x => { delete x.pending; });
+      renderLists(); renderTabs();
+    } else if (S.sync.pending === 0) {
+      sync();
+    }
+  }
+}
+
+function listOf(kind) { return kind === 'shop' ? S.data.shop : S.data.tasks; }
+
+function addItem(kind, title, due) {
+  title = cap(title);
+  if (!title) return;
+  const arr = listOf(kind);
+  if (kind === 'shop') {
+    const ex = arr.find(x => x.title.toLowerCase() === title.toLowerCase());
+    if (ex && !ex.done) return;
+    if (ex && ex.done) { toggleItem(kind, ex.id); return; }
+  }
+  const item = { id: 'tmp' + Date.now() + Math.random(), listId: kind, title: title, done: false, due: due || null, pending: true };
+  arr.unshift(item);
+  mutate(() => apiPost(kind === 'shop' ? 'addShop' : 'addTask', { title: title, due: due || null }));
+}
+function toggleItem(kind, id) {
+  const it = listOf(kind).find(x => x.id === id);
+  if (!it || String(id).indexOf('tmp') === 0) return;
+  it.done = !it.done;
+  mutate(() => apiPost('setDone', { listId: it.listId || kind, id: it.id, done: it.done }));
+}
+function clearDone(kind) {
+  const arr = listOf(kind);
+  const any = arr.some(x => x.done);
+  if (!any) return;
+  if (kind === 'shop') S.data.shop = arr.filter(x => !x.done); else S.data.tasks = arr.filter(x => !x.done);
+  const listId = kind === 'shop' ? (S.data.shopListId || 'shop') : (S.data.taskListId || 'tasks');
+  mutate(() => apiPost('clearDone', { listId: listId }));
+}
+
+/* ---------------------------- Clima (Open-Meteo) ---------------------------- */
+const WMO = c => {
+  if (c === 0) return ['Despejado', 'sun'];
+  if (c === 1) return ['Mayormente despejado', 'partly'];
+  if (c === 2) return ['Parcialmente nublado', 'partly'];
+  if (c === 3) return ['Nublado', 'cloud'];
+  if (c === 45 || c === 48) return ['Niebla', 'fog'];
+  if (c >= 51 && c <= 57) return ['Llovizna', 'rain'];
+  if (c >= 61 && c <= 67) return ['Lluvia', 'rain'];
+  if (c >= 71 && c <= 77) return ['Nieve', 'snow'];
+  if (c >= 80 && c <= 82) return ['Chaparrones', 'rain'];
+  if (c === 85 || c === 86) return ['Nieve', 'snow'];
+  if (c >= 95) return ['Tormenta', 'storm'];
+  return ['—', 'cloud'];
+};
+async function loadWeather() {
+  const s = S.settings;
+  if (s.lat == null || s.lon == null) {
+    if (isDemo()) {
+      S.weather = { demo: true, temp: 32, code: 2, isDay: 1, max: 34, min: 23, daily: [{ c: 0, hi: 34, lo: 23 }, { c: 2, hi: 31, lo: 22 }, { c: 63, hi: 27, lo: 20 }, { c: 0, hi: 33, lo: 22 }, { c: 1, hi: 32, lo: 22 }] };
+    } else {
+      S.weather = null;
+    }
+    renderWeather();
+    return;
+  }
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + s.lat + '&longitude=' + s.lon +
+      '&current=temperature_2m,weather_code,is_day,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5';
+    const r = await fetch(url, { cache: 'no-store' });
+    const j = await r.json();
+    S.weather = {
+      temp: Math.round(j.current.temperature_2m), feels: Math.round(j.current.apparent_temperature), code: j.current.weather_code, isDay: j.current.is_day,
+      max: Math.round(j.daily.temperature_2m_max[0]), min: Math.round(j.daily.temperature_2m_min[0]),
+      rain: j.daily.precipitation_probability_max,
+      daily: j.daily.weather_code.map((c, i) => ({ c: c, hi: Math.round(j.daily.temperature_2m_max[i]), lo: Math.round(j.daily.temperature_2m_min[i]), p: j.daily.precipitation_probability_max[i] })).slice(1)
+    };
+    LS.set('weather', S.weather);
+  } catch (e) {
+    S.weather = S.weather || LS.get('weather', null);
+  }
+  renderWeather();
+}
+function weatherIcon(code, isDay) {
+  const k = WMO(code)[1];
+  if (!isDay && (k === 'sun' || k === 'partly')) return 'moon';
+  return k;
+}
+
+/* ---------------------------- Render: header & reloj ---------------------------- */
+function xmasInfo(d) {
+  const today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (d.getMonth() === 0 && d.getDate() <= 6) return { days: 0, label: '¡Feliz año nuevo!' };
+  let target = new Date(d.getFullYear(), 11, 25);
+  if (today > target) return { days: 0, label: '¡Felices fiestas!' };
+  const days = Math.round((target - today) / 86400000);
+  return { days: days, label: days === 0 ? '¡Feliz Navidad!' : days === 1 ? 'día para Navidad' : 'días para Navidad' };
+}
+function syncText() {
+  if (isDemo()) return 'Modo demo';
+  if (S.sync.ok === false) return 'Sin conexión';
+  if (!S.sync.last) return 'Conectando…';
+  return 'Actualizado ' + hm(new Date(S.sync.last));
+}
+function eventsOn(dateKey) {
+  return (S.data.events || []).filter(e => {
+    if (e.allDay) return e.date <= dateKey && dateKey < (e.endDate || e.date + 'z');
+    return ymd(new Date(e.start)) === dateKey;
+  });
+}
+function dueLabel(due) {
+  if (!due) return null;
+  const today = ymd(new Date());
+  const tom = ymd(addDays(new Date(), 1));
+  const [y, m, d] = due.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  if (due < today) return { t: 'Vencida · ' + d + '/' + m, late: true };
+  if (due === today) return { t: 'Hoy', late: false };
+  if (due === tom) return { t: 'Mañana', late: false };
+  const diff = Math.round((dt - new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) / 86400000);
+  return { t: diff < 7 ? DL[dt.getDay()] : d + '/' + m, late: false };
+}
+function sortItems(arr) {
+  return arr.slice().sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const da = a.due || '9999', db = b.due || '9999';
+    return da < db ? -1 : da > db ? 1 : 0;
+  });
+}
+function remaining(t) { return t.st === 'run' ? Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000)) : t.rem; }
+function fmtSecs(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+}
+function addTimer(secs, label) {
+  S.timers.push({ id: 't' + Date.now() + Math.random().toString(36).slice(2, 6), label: label || (Math.round(secs / 60) + ' min'), total: secs, rem: secs, endAt: Date.now() + secs * 1000, st: 'run' });
+  saveTimers(); S.ui.ta = 'timers'; renderTimersCard();
+}
+function timerToggle(id) {
+  const t = S.timers.find(x => x.id === id);
+  if (!t) return;
+  if (t.st === 'run') { t.rem = remaining(t); t.st = 'pause'; }
+  else if (t.st === 'pause') { t.endAt = Date.now() + t.rem * 1000; t.st = 'run'; }
+  else { t.rem = t.total; t.endAt = Date.now() + t.total * 1000; t.st = 'run'; }
+  saveTimers(); renderTimersCard();
+}
+function nextAlarm() {
+  const on = S.alarms.filter(a => a.on).sort((a, b) => a.time < b.time ? -1 : 1);
+  if (!on.length) return null;
+  const now = hm(new Date());
+  return on.find(a => a.time > now) || on[0];
+}
+function daysText(a) {
+  if (!a.days || !a.days.length) return 'Una vez';
+  const k = a.days.slice().sort().join(',');
+  if (k === '1,2,3,4,5') return 'Lun a Vie';
+  if (k === '0,6') return 'Sáb y Dom';
+  if (a.days.length === 7) return 'Todos los días';
+  return a.days.map(x => DS[x]).join(' ');
+}
+function tickTimers() {
+  let changed = false;
+  S.timers.forEach(t => {
+    if (t.st === 'run' && remaining(t) <= 0) {
+      t.st = 'done'; t.rem = 0; changed = true;
+      ring('Timer listo', t.label, null);
+    }
+  });
+  if (changed) { saveTimers(); renderTimersCard(); return; }
+  if (S.ui.ta !== 'timers') return;
+  document.querySelectorAll('[data-tid]').forEach(el => {
+    const t = S.timers.find(x => x.id === el.dataset.tid);
+    if (!t) return;
+    const r = remaining(t);
+    el.querySelector('[data-disp]').textContent = fmtSecs(r);
+    el.querySelector('[data-bar]').style.width = (t.total ? Math.min(100, (t.total - r) / t.total * 100) : 0) + '%';
+  });
+}
+let lastAlarmKey = LS.get('lastAlarmKey', '');
+function checkAlarms() {
+  const d = new Date();
+  const now = hm(d);
+  const key = ymd(d) + ' ' + now;
+  if (key === lastAlarmKey) return;
+  S.alarms.forEach(a => {
+    if (!a.on || a.time !== now) return;
+    if (a.days && a.days.length && a.days.indexOf(d.getDay()) < 0) return;
+    lastAlarmKey = key; LS.set('lastAlarmKey', key);
+    if (!a.days || !a.days.length) { a.on = false; saveAlarms(); }
+    ring(a.time, a.label, a);
+    renderTimersCard(); renderHeader();
+  });
+}
+
+/* ---------------------------- Sonido ---------------------------- */
+let actx = null, beepTimer = null;
+function unlockAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { /* sin audio */ }
+}
+function beep() {
+  if (!actx) return;
+  const t0 = actx.currentTime;
+  [0, 0.22, 0.44].forEach((off, i) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = i === 2 ? 1046 : 880;
+    g.gain.setValueAtTime(0.0001, t0 + off);
+    g.gain.exponentialRampToValueAtTime(0.35, t0 + off + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + off + 0.18);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t0 + off); o.stop(t0 + off + 0.2);
+  });
+}
+function ring(title, label, alarm) {
+  S.ui.ring = { title: title, label: label, alarm: alarm, since: Date.now() };
+  exitAmbient();
+  renderOverlay();
+  clearInterval(beepTimer);
+  beep();
+  beepTimer = setInterval(() => {
+    if (!S.ui.ring || Date.now() - S.ui.ring.since > 5 * 60000) { stopRing(); return; }
+    beep();
+  }, 1300);
+  if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+}
+function stopRing() {
+  clearInterval(beepTimer); beepTimer = null;
+  S.ui.ring = null; renderOverlay();
+}
+
+/* ---------------------------- Voz ---------------------------- */
+// FullScreendy (kiosco en la tablet) expone su propio puente de voz: la WebView de Android no trae speechSynthesis.
+const FSD = window.fullscreendy && typeof window.fullscreendy.textToSpeech === 'function' ? window.fullscreendy : null;
+// La WebView declara webkitSpeechRecognition pero no tiene reconocedor (sin servicios de Google): en el kiosco se escribe el comando.
+const SR = (FSD || (BOOT && BOOT.kiosk)) ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
+let rec = null;
+// Voz de respuesta: eSpeak (meSpeak, ~5 MB, sin servicios de Google) dentro de la página.
+// La WebView de Android no trae speechSynthesis y la voz de FullScreendy está fija en alemán.
+const MES = { base: 'https://cdn.jsdelivr.net/npm/mespeak@2.0.2/', m: null, loading: null, src: null };
+async function mesLoad() {
+  if (MES.m) return MES.m;
+  if (!MES.loading) MES.loading = (async () => {
+    const mod = await import(MES.base + '+esm');
+    const m = mod.default || mod;
+    m.loadConfig(await (await fetch(MES.base + 'src/mespeak_config.json')).json());
+    m.loadVoice(await (await fetch(MES.base + 'voices/es-la.json')).json());
+    MES.m = m; return m;
+  })();
+  return MES.loading;
+}
+// Dice los números como palabras simples para que eSpeak no lea "09:30" raro.
+function speakText(t) {
+  return String(t).replace(/(\d{1,2}):(\d{2})/g, (x, h, mm) => +h + (mm === '00' ? '' : ' y ' + +mm)).replace(/°/g, ' grados').replace(/[“”"]/g, '');
+}
+async function speak(text) {
+  if (!S.settings.speak || !text) return;
+  if (window.speechSynthesis && !FSD && !(BOOT && BOOT.kiosk)) {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'es-ES'; u.rate = 1.02;
+      const v = speechSynthesis.getVoices().find(x => /^es/i.test(x.lang));
+      if (v) { u.voice = v; speechSynthesis.speak(u); return; }
+    } catch (e) { /* sigue con eSpeak */ }
+  }
+  try {
+    unlockAudio(); if (!actx) return;
+    let buf = null;
+    if (!isDemo()) {
+      try {
+        const t0 = Date.now();
+        const r = await Promise.race([apiPost('tts', { text: String(text).slice(0, 300) }), new Promise((_, ko) => setTimeout(() => ko(new Error('tiempo')), 12000))]);
+        const bin = atob(r.audio), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        buf = await actx.decodeAudioData(u8.buffer);
+        jvLog('voz gemini', Date.now() - t0);
+      } catch (e) { jvLog('voz gemini error', String(e.message || e)); }
+    }
+    if (!buf) {
+      const m = await mesLoad();
+      const raw = m.speak(speakText(text), { voice: 'es-la', rawdata: 'array', speed: 150, pitch: 45, wordgap: 1 });
+      if (!raw || !raw.length) return;
+      buf = await actx.decodeAudioData(new Uint8Array(raw).buffer);
+    }
+    try { if (MES.src) MES.src.stop(); } catch (e) { /* nada */ }
+    const src = actx.createBufferSource(); const g = actx.createGain(); g.gain.value = 0.9;
+    src.buffer = buf; src.connect(g); g.connect(actx.destination); src.start();
+    MES.src = src;
+    // Mientras habla, Jarvis no escucha la palabra de activación (evita que se oiga a sí mismo).
+    JV.mute = Date.now() + buf.duration * 1000 + 400;
+  } catch (e) { /* sin voz */ }
+}
+function openVoice() {
+  S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '' };
+  renderOverlay();
+  startListening();
+}
+function startListening() {
+  if (!SR) {
+    S.ui.sheet.phase = 'idle';
+    S.ui.sheet.note = 'Escribí el comando abajo (este dispositivo no tiene reconocimiento de voz).';
+    renderOverlay();
+    return;
+  }
+  try { if (rec) rec.abort(); } catch (e) { /* nada */ }
+  rec = new SR();
+  rec.lang = S.settings.lang || 'es-PY';
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+  let finalText = '';
+  rec.onresult = ev => {
+    let interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const r = ev.results[i];
+      if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+    }
+    const sh = S.ui.sheet;
+    if (sh && sh.kind === 'voice') { sh.heard = (finalText || interim).trim(); const el = $('v-heard'); if (el) el.textContent = sh.heard ? '“' + sh.heard + '”' : ''; }
+  };
+  rec.onerror = ev => {
+    const sh = S.ui.sheet;
+    if (!sh || sh.kind !== 'voice') return;
+    if (ev.error === 'language-not-supported' && rec.lang !== 'es-ES') { S.settings.lang = 'es-ES'; saveSettings(); startListening(); return; }
+    sh.note = ev.error === 'not-allowed' ? 'Permití el micrófono para esta página (candado de la barra de direcciones).' : ev.error === 'no-speech' ? 'No escuché nada. Tocá el micrófono para intentar de nuevo.' : 'Error de voz: ' + ev.error;
+    sh.phase = 'idle'; renderOverlay();
+  };
+  rec.onend = () => {
+    const sh = S.ui.sheet;
+    if (!sh || sh.kind !== 'voice') return;
+    if (finalText.trim()) runCommand(finalText.trim());
+    else if (sh.phase === 'listen') { sh.phase = 'idle'; renderOverlay(); }
+  };
+  try { rec.start(); S.ui.sheet.phase = 'listen'; } catch (e) { S.ui.sheet.phase = 'idle'; }
+}
+async function runCommand(text) {
+  const sh = S.ui.sheet && S.ui.sheet.kind === 'voice' ? S.ui.sheet : (S.ui.sheet = { kind: 'voice' });
+  sh.phase = 'done'; sh.heard = text; sh.reply = '…'; delete sh.note;
+  renderOverlay();
+  let reply;
+  try { reply = await handleCommand(text); } catch (e) { reply = 'Ups, algo falló: ' + (e.message || e); }
+  if (S.ui.sheet && S.ui.sheet.kind === 'voice') { S.ui.sheet.reply = reply; renderOverlay(); }
+  // Acciones: pitido de confirmación (rápido). Preguntas (hora, clima, agenda…): respuesta hablada.
+  if (reply === 'Cancelado.' || /^No te entend/.test(reply)) { /* sin sonido: evita hablar ante activaciones accidentales */ }
+  else if (/^(Agregu[eé]|Timer de|Alarma para|Anotado|Listo|Tach[eé]|Activando|Agend[eé])/.test(reply)) { if (!/apagu[eé]/.test(reply)) { unlockAudio(); beep(); } }
+  else speak(reply);
+  clearTimeout(runCommand._t);
+  runCommand._t = setTimeout(() => { if (S.ui.sheet && S.ui.sheet.kind === 'voice' && S.ui.sheet.phase === 'done') closeSheet(); }, sh && sh.jarvis ? 3000 : 4500);
+  if (sh && sh.jarvis) jvLog('respuesta', reply);
+}
+
+const NUMW = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, doce: 12, quince: 15, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50 };
+const WD = { domingo: 0, lunes: 1, martes: 2, 'miércoles': 3, miercoles: 3, jueves: 4, viernes: 5, 'sábado': 6, sabado: 6 };
+function parseDue(str) {
+  let txt = ' ' + str + ' ';
+  let due = null;
+  const t = new Date();
+  if (/\spasado ma[nñ]ana\s/.test(txt)) { due = ymd(addDays(t, 2)); txt = txt.replace(/\spasado ma[nñ]ana\s/, ' '); }
+  else if (/\sma[nñ]ana\s/.test(txt)) { due = ymd(addDays(t, 1)); txt = txt.replace(/\sma[nñ]ana\s/, ' '); }
+  else if (/\shoy\s/.test(txt)) { due = ymd(t); txt = txt.replace(/\shoy\s/, ' '); }
+  const wm = txt.match(/\s(?:el\s)?(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)\s/);
+  if (!due && wm) {
+    const target = WD[wm[1]];
+    let diff = (target - t.getDay() + 7) % 7; if (diff === 0) diff = 7;
+    due = ymd(addDays(t, diff)); txt = txt.replace(wm[0], ' ');
+  }
+  const tm = txt.match(/\s(?:a\s+las?|a\s+la)\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s*(?:hs|horas))?(?:\s+de la (?:tarde|noche|ma[nñ]ana))?/);
+  if (tm) { txt = txt.replace(tm[0], ' '); if (!due) due = ymd(t); }
+  return { text: txt.replace(/\s+/g, ' ').trim(), due: due };
+}
+const joinList = arr => arr.length > 1 ? arr.slice(0, -1).join(', ') + ' y ' + arr[arr.length - 1] : arr[0];
+
+// El dictado por voz escribe los números con letras: "siete y media" -> "7:30", "diez minutos" -> "10 minutos".
+function numWords(q) {
+  const U = { dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiuno: 21, veintiun: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29 };
+  const T = { treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90 };
+  const one = Object.assign({ un: 1, uno: 1, una: 1 }, U);
+  q = q.replace(/dieciséis/g, 'dieciseis').replace(/veintidós/g, 'veintidos').replace(/veintitrés/g, 'veintitres').replace(/veintiséis/g, 'veintiseis').replace(/veintiún/g, 'veintiun');
+  q = q.replace(new RegExp('\\b(' + Object.keys(T).join('|') + ')(?: y (' + Object.keys(one).join('|') + '))?\\b', 'g'), (m, t, u) => String(T[t] + (u ? one[u] : 0)));
+  q = q.replace(new RegExp('\\b(' + Object.keys(U).join('|') + ')\\b', 'g'), m => String(U[m]));
+  if (/(alarma|despert)/.test(q)) {
+    q = q.replace(/\ba la una\b/g, 'a la 1').replace(/\b(\d{1,2}) y media\b/g, '$1:30').replace(/\b(\d{1,2}) y cuarto\b/g, '$1:15')
+         .replace(/\b(\d{1,2}) y (\d{1,2})\b/g, (m, a, b) => a + ':' + pad(b)).replace(/\b(\d{1,2}) en punto\b/g, '$1:00');
+  }
+  return q;
+}
+function findItem(list, what) {
+  const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const w = norm(what).split(' ').filter(x => x.length > 2 && !/^(los|las|del|que|para|con|una|uno)$/.test(x));
+  const open = list.filter(x => !x.done);
+  return open.find(x => norm(x.title) === norm(what)) || open.find(x => w.length && w.every(k => norm(x.title).includes(k))) || open.find(x => w.length && w.some(k => k.length > 3 && norm(x.title).includes(k)));
+}
+async function handleCommand(raw) {
+  let q = raw.toLowerCase().replace(/[¿?¡!.]/g, ' ').replace(/\s+/g, ' ').trim();
+  const pm = q.match(/^(alexa|ok google|oye google|hey google|google|hey jarvis|oye jarvis|jarvis)\s*,?\s*/);
+  if (pm) q = q.slice(pm[0].length);
+  q = numWords(q);
+  if (/^(cancel[aá]r?|cancela|cancelalo|olvid[aá]lo|olvidate|dej[aá]lo|no importa|nada|ninguna|no)$/.test(q)) return 'Cancelado.';
+  const STOPV = '(?:cancel[aá]r?|cancela|par[aá]r?|deten(?:[eé]|er)?|det[eé]n|fren[aá]r?|apag[aá]r?|borr[aá]r?|sac[aá]r?|quit[aá]r?|elimin[aá]r?|termin[aá]r?|desactiv[aá]r?|cort[aá]r?)';
+  const stopWords = new RegExp('^(' + STOPV + '|para ya|basta|listo|silencio|stop|ok|ya est[aá])(?=\\s|$)');
+  const stopAny = new RegExp(STOPV + '.*(alarma|timer|temporizador|cron[oó]metro)');
+  if (S.ui.ring && (stopWords.test(q) || stopAny.test(q))) { stopRing(); return 'Listo, lo apagué.'; }
+  if (stopWords.test(q) && q.split(' ').length <= 3 && !/(timer|temporizador|cron[oó]metro|alarma|despertador)/.test(q)) return 'Listo.';
+  const numRe = '\\b(\\d+|' + Object.keys(NUMW).join('|') + ')';
+  let m;
+
+  // Temas
+  if ((m = q.match(/(?:tema|modo|estilo)\s+(navide[nñ]o|navidad|verano|cl[aá]sico|noche|oscuro|claro|smart display|asistente|material|cristal|autom[aá]tico)/))) {
+    const map = { 'navideño': 'navidad', navideno: 'navidad', navidad: 'navidad', verano: 'verano', 'clásico': 'clasico', clasico: 'clasico', claro: 'clasico', noche: 'noche', oscuro: 'noche', 'smart display': 'asistente', asistente: 'asistente', material: 'material', cristal: 'cristal', 'automático': 'auto', automatico: 'auto' };
+    S.settings.theme = map[m[1]] || 'auto'; saveSettings(); applyTheme();
+    return 'Listo, tema ' + (S.settings.theme === 'auto' ? 'automático' : THEMES[S.settings.theme].name) + '.';
+  }
+  // Modo ambiente
+  if (/(modo ambiente|protector|pantalla de descanso)/.test(q)) { setTimeout(enterAmbient, 1500); return 'Activando modo ambiente.'; }
+  // Timer
+  // Detener / cancelar timers (antes de la regla que crea timers)
+  if (new RegExp(STOPV + '.*(timer|temporizador|cron[oó]metro)').test(q)) {
+    if (!S.timers.length) return 'No hay timers en marcha.';
+    if (/\btodos\b|\blos (timers|temporizadores)\b/.test(q)) { const n = S.timers.length; S.timers = []; saveTimers(); renderTimersCard(); return n === 1 ? 'Listo, quité el timer.' : 'Listo, quité los ' + n + ' timers.'; }
+    let t = null;
+    const dm = q.match(new RegExp(numRe + '\\s*(segundos?|seg|minutos?|min|horas?|hs?)\\b'));
+    if (dm) {
+      const n = /\d/.test(dm[1]) ? parseInt(dm[1], 10) : NUMW[dm[1]];
+      const c0 = dm[2].charAt(0), secs = n * (c0 === 's' ? 1 : c0 === 'h' ? 3600 : 60);
+      t = S.timers.find(x => x.total === secs) || null;
+    }
+    if (!t) {
+      const lm = q.match(/(?:timer|temporizador|cron[oó]metro)\s+(?:de\s+|del\s+|para\s+)?(?:los\s+|las\s+|el\s+|la\s+)?(.+)$/);
+      if (lm) { const f = findItem(S.timers.map(x => ({ id: x.id, title: x.label })), lm[1]); if (f) t = S.timers.find(x => x.id === f.id); }
+    }
+    if (!t && S.timers.length === 1) t = S.timers[0];
+    if (!t) { const n = S.timers.length; S.timers = []; saveTimers(); renderTimersCard(); return n === 1 ? 'Listo, quité el timer.' : 'Listo, quité los ' + n + ' timers.'; }
+    S.timers = S.timers.filter(x => x.id !== t.id); saveTimers(); renderTimersCard();
+    return 'Listo, quité el timer ' + t.label + '.';
+  }
+  // Detener / cancelar alarmas (antes de la regla que crea alarmas)
+  if (new RegExp(STOPV + '.*(alarma|despertador)').test(q)) {
+    const tm = q.match(/\b(\d{1,2})(?::(\d{2}))?\b/);
+    const before = S.alarms.length;
+    if (tm) { const t = pad(+tm[1]) + ':' + (tm[2] || '00'); S.alarms = S.alarms.filter(a => a.time !== t && a.time !== pad((+tm[1] + 12) % 24) + ':' + (tm[2] || '00')); }
+    else if (/todas/.test(q)) S.alarms = [];
+    else { const nx = nextAlarm(); if (nx) S.alarms = S.alarms.filter(a => a !== nx); }
+    saveAlarms(); renderTimersCard(); renderHeader();
+    return before > S.alarms.length ? 'Listo, quité ' + (before - S.alarms.length === 1 ? 'la alarma.' : 'las alarmas.') : 'No encontré esa alarma.';
+  }
+  if (/(timer|temporizador|cron[oó]metro)/.test(q) && (m = q.match(new RegExp(numRe + '\\s*(segundos?|seg|minutos?|min|horas?|hs?)\\b')))) {
+    const n = /\d/.test(m[1]) ? parseInt(m[1], 10) : NUMW[m[1]];
+    const c0 = m[2].charAt(0);
+    const u = c0 === 's' ? 1 : c0 === 'h' ? 3600 : 60;
+    const unit = u === 1 ? 'seg' : u === 60 ? 'min' : (n === 1 ? 'hora' : 'horas');
+    const lm = q.match(/para (?:el |la |los |las )?(.+)$/);
+    addTimer(n * u, lm ? cap(lm[1]) : n + ' ' + unit);
+    return 'Timer de ' + n + ' ' + unit + (lm ? ' para ' + lm[1] : '') + ' en marcha.';
+  }
+  // Alarma
+  if (/(alarma|despert)/.test(q) && (m = q.match(/\b(\d{1,2})(?:[:.h ](\d{2}))?\b/))) {
+    let h = parseInt(m[1], 10);
+    if (/(tarde|noche)/.test(q) && h < 12) h += 12;
+    const time = pad(h % 24) + ':' + (m[2] || '00');
+    const days = /(todos los d[ií]as)/.test(q) ? [0, 1, 2, 3, 4, 5, 6] : /(lunes a viernes|d[ií]as de semana|semana)/.test(q) ? [1, 2, 3, 4, 5] : [];
+    S.alarms.push({ id: 'a' + Date.now(), time: time, label: 'Alarma', days: days, on: true }); saveAlarms();
+    S.ui.ta = 'alarms'; renderTimersCard(); renderHeader();
+    return 'Alarma para las ' + time + (days.length ? ' (' + daysText({ days: days }) + ')' : '') + '.';
+  }
+  // Compras: agregar
+  if ((m = q.match(/(?:agreg[aá]r?|a[nñ]ad[ií]r?|sum[aá]r?|pon[eé]r?|anot[aá]r?)\s+(.+?)\s+(?:a|en)\s+(?:la\s+|mi\s+)?(?:lista|compras|s[uú]per)/)) || (m = q.match(/^(?:hay que |tenemos que |falta )?compr(?:ar|á)\s+(.+)$/))) {
+    const items = m[1].split(/\s*,\s*|\s+y\s+/).map(x => x.trim()).filter(Boolean);
+    items.forEach(x => addItem('shop', x));
+    S.ui.tab = 'compras'; renderTabs(); renderLists();
+    return 'Agregué ' + joinList(items) + ' a Compras.';
+  }
+  // Compras: quitar
+  if ((m = q.match(/(?:sac[aá]|quit[aá]|borr[aá]|elimin[aá]|tach[aá])\s+(?:el |la |los |las )?(.+?)\s+de\s+(?:la\s+)?(?:lista|compras)/))) {
+    const it = findItem(S.data.shop, m[1]);
+    if (!it) return 'No encontré ' + m[1] + ' en Compras.';
+    toggleItem('shop', it.id); renderLists();
+    return 'Listo, taché ' + it.title + '.';
+  }
+  if (/(qu[eé] (hay que|tengo que|falta) comprar|lista de compras)/.test(q)) {
+    const p = S.data.shop.filter(x => !x.done).map(x => x.title);
+    S.ui.tab = 'compras'; renderTabs();
+    return p.length ? 'En Compras hay: ' + joinList(p) + '.' : 'La lista de compras está vacía.';
+  }
+  // Tareas: marcar como hecha
+  if ((m = q.match(/^(?:ya\s+)?(?:hice|termin[eé]|complet[eé])\s+(?:la tarea\s+|de\s+)?(.+)$/)) || (m = q.match(/(?:tach[aá]|complet[aá]|marc[aá]|termin[aá]|sac[aá]|quit[aá]|borr[aá]|elimin[aá])\s+(?:la tarea\s+)?(?:el |la |los |las )?(.+?)(?:\s+(?:de|en)\s+(?:las\s+|mis\s+)?tareas|\s+como hecha)?$/))) {
+    const it = findItem(S.data.tasks, m[1]);
+    if (it) { toggleItem('tasks', it.id); renderLists(); return 'Listo, taché la tarea ' + it.title + '.'; }
+    const sh = findItem(S.data.shop, m[1]);
+    if (sh) { toggleItem('shop', sh.id); renderLists(); return 'Listo, taché ' + sh.title + ' de Compras.'; }
+    return 'No encontré ' + m[1] + ' en tus tareas.';
+  }
+  // Agenda: crear evento (Gemini interpreta fecha y hora en el script)
+  if (/^(agend[aá]|cre[aá] (?:un )?evento|agreg[aá] (?:un )?evento|pon[eé] (?:un )?evento|anot[aá] en (?:el |mi )?calendario|program[aá] (?:un )?evento)/.test(q) || /(evento|cita|turno|reuni[oó]n|cumplea[nñ]os).*(calendario|agenda)/.test(q)) {
+    if (isDemo()) return 'En modo demo no puedo agendar eventos.';
+    const r = await apiPost('addEvent', { text: raw });
+    setTimeout(() => sync(), 1500);
+    return 'Agendé ' + r.title + ' ' + r.when + '.';
+  }
+  // Tareas / recordatorios
+  if ((m = q.match(/tarea\s*:?\s+(.+)$/)) || (m = q.match(/(?:record[aá]r?me|recu[eé]rdame|acordame|hac[eé]me acordar)\s+(?:de\s+)?(?:que\s+)?(?:hay que\s+)?(.+)$/))) {
+    const pd = parseDue(m[1]);
+    addItem('tasks', pd.text, pd.due);
+    S.ui.tab = 'tareas'; renderTabs(); renderLists();
+    const dl = dueLabel(pd.due);
+    return 'Anotado' + (dl ? ' para ' + dl.t.toLowerCase() : '') + ': ' + cap(pd.text) + '.';
+  }
+  if (/(qu[eé] tareas|tareas pendientes|qu[eé] tengo pendiente)/.test(q)) {
+    const p = S.data.tasks.filter(x => !x.done).map(x => x.title);
+    S.ui.tab = 'tareas'; renderTabs();
+    return p.length ? 'Tenés ' + p.length + ' pendientes: ' + joinList(p.slice(0, 5)) + '.' : 'No tenés tareas pendientes.';
+  }
+  // Agenda
+  if (/(qu[eé] tengo|qu[eé] hay|agenda|eventos|calendario)/.test(q)) {
+    const tomorrow = /ma[nñ]ana/.test(q);
+    const d = addDays(new Date(), tomorrow ? 1 : 0);
+    const list = eventsOn(ymd(d)).filter(e => tomorrow || e.allDay || new Date(e.end).getTime() > Date.now());
+    S.ui.day = tomorrow ? 1 : 0; S.ui.tab = 'agenda'; renderAgenda(); renderTabs();
+    if (!list.length) return tomorrow ? 'Mañana no tenés eventos.' : 'No te quedan eventos por hoy.';
+    const first = list[0];
+    return (tomorrow ? 'Mañana tenés ' : 'Hoy te quedan ') + list.length + (list.length === 1 ? ' evento' : ' eventos') + '. ' + (tomorrow ? 'El primero es ' : 'El próximo es ') + first.title + (first.allDay ? '' : ' a las ' + hm(new Date(first.start))) + '.';
+  }
+  // Clima
+  if (/(clima|tiempo|temperatura|llover|lluvia|calor|fr[ií]o)/.test(q)) {
+    const w = S.weather;
+    if (!w) return 'Todavía no configuraste tu ciudad para el clima.';
+    let r = 'Ahora hace ' + w.temp + '° y está ' + WMO(w.code)[0].toLowerCase() + '. Máxima de ' + w.max + '°.';
+    if (w.daily && w.daily[0]) r += ' Mañana: ' + WMO(w.daily[0].c)[0].toLowerCase() + ', ' + w.daily[0].hi + '°.';
+    return r;
+  }
+  if (/navidad/.test(q)) {
+    const x = xmasInfo(new Date());
+    return x.days > 0 ? 'Faltan ' + x.days + ' días para Navidad.' : x.label;
+  }
+  if (/(qu[eé] hora)/.test(q)) return 'Son las ' + hm(new Date()) + '.';
+  return 'No te entendí. Probá con alguno de los ejemplos.';
+}
+
+/* ---------------------------- Overlays ---------------------------- */
+/* ---------------------------- Jarvis (voz sin Google) ----------------------------
+ * "Hey Jarvis" -> pitido -> comando en español. Todo corre en el dispositivo:
+ *  - Palabra de activación: openWakeWord (modelo hey_jarvis, ONNX) con onnxruntime-web.
+ *  - Dictado: Vosk (modelo chico de español), se descarga una vez y queda en caché.
+ * Necesita micrófono en contexto seguro (https o http://localhost). No funciona dentro del marco de Apps Script.
+ */
+const JV = {
+  ORT: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/',
+  OWW: 'https://cdn.jsdelivr.net/npm/openwakeword-wasm-browser@0.1.1/models/',
+  VOSK: 'https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js',
+  VOSK_MODEL: 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-es-0.3.tar.gz',
+  FRAME: 1280, RATE: 16000, THRESHOLD: 0.5, SCALE: 32767, CMD_MS: 8000,
+  state: 'off', note: '', score: 0, peak: 0,
+  mel: [], hist: [], q: Promise.resolve(), sess: null, model: null, rec: null, cmdT: null, cool: 0
+};
+const JV_VOCAB = ["hey","oye","ey","jarvis","yarvis","por","favor","gracias","agrega","agregá","agregar","agregue","añade","añadí","añadir","suma","sumá","pone","poné","poner","pon","anota","anotá","anotar","mete","saca","sacá","quita","quitá","borra","borrá","elimina","eliminá","tacha","tachá","cancela","cancelá","para","pará","detén","detené","a","al","el","la","los","las","un","una","uno","unos","unas","de","del","en","mi","con","que","qué","y","o","hay","tengo","tenemos","falta","faltan","lista","súper","super","supermercado","compras","compra","comprar","mercado","despensa","recordame","recuérdame","recordarme","acordame","recordatorio","tarea","tareas","nueva","nuevo","hacer","llamar","pagar","buscar","llevar","traer","limpiar","lavar","sacar","regar","cocinar","preparar","enviar","mandar","revisar","arreglar","basura","ropa","plantas","perro","gato","auto","luz","agua","gas","internet","alquiler","cuenta","factura","médico","doctor","turno","timer","temporizador","cronómetro","alarma","alarmas","despertador","despertame","despertarme","crea","creá","crear","configura","programa","segundo","segundos","minuto","minutos","hora","horas","media","cuarto","punto","mañana","tarde","noche","hoy","pasado","lunes","martes","miércoles","jueves","viernes","sábado","domingo","semana","días","todos","cero","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez","once","doce","trece","catorce","quince","dieciséis","diecisiete","dieciocho","diecinueve","veinte","veintiuno","veintidós","veintitrés","veinticuatro","veinticinco","treinta","cuarenta","cincuenta","sesenta","noventa","cien","es","son","cómo","está","clima","tiempo","temperatura","va","llover","lluvia","calor","frío","agenda","eventos","calendario","tema","modo","navideño","navidad","oscuro","claro","clásico","automático","ambiente","leche","pan","huevos","huevo","queso","manteca","mantequilla","yogur","yogurt","crema","dulce","harina","azúcar","sal","aceite","vinagre","arroz","fideos","pasta","tallarines","polenta","avena","cereal","galletas","galletitas","café","té","yerba","mate","cacao","chocolate","carne","pollo","cerdo","pescado","atún","jamón","salame","chorizo","milanesas","hamburguesas","salchichas","mortadela","tomate","tomates","cebolla","cebollas","papa","papas","zanahoria","zanahorias","lechuga","ajo","pimiento","morrón","zapallo","limón","limones","naranja","naranjas","manzana","manzanas","banana","bananas","pera","frutas","fruta","verdura","verduras","uva","frutilla","frutillas","palta","mandioca","choclo","tortillas","empanadas","pizza","gaseosa","jugo","cerveza","vino","soda","hielo","detergente","lavandina","jabón","shampoo","champú","acondicionador","dental","cepillo","papel","higiénico","servilletas","rollo","cocina","esponja","bolsas","bolsa","desodorante","pañales","toallitas","suavizante","limpiador","desinfectante","fósforos","pilas","foco","focos","velas","mayonesa","ketchup","mostaza","salsa","caldo","condimento","orégano","pimienta","legumbres","lentejas","porotos","garbanzos","mermelada","miel","tostadas","lactal","[unk]"];
+// Junta el resultado de los dos reconocedores: usa el cerrado si entendió todo; si no, el abierto.
+JV.got = {};
+function jvPick(which, text) {
+  if (JV.state !== 'command' && JV.state !== 'flush') return;
+  if (JV.state === 'command' && !text) return;
+  JV.got[which] = text;
+  const decide = () => {
+    if (JV.state !== 'command' && JV.state !== 'flush') return;
+    const g = (JV.got.g || '').replace(/\s+/g, ' ').trim(), o = (JV.got.o || '').trim();
+    const gOk = g && !/\[unk\]/.test(g) && g.split(' ').length >= 2;
+    jvLog('elige', { g: g, o: o, usa: gOk ? 'cerrado' : 'abierto' });
+    jvFinish(gOk ? g : (o || g.replace(/\[unk\]/g, '').trim()));
+  };
+  clearTimeout(JV.pickT);
+  if (JV.got.g !== undefined && JV.got.o !== undefined) decide();
+  else JV.pickT = setTimeout(decide, JV.recG ? 900 : 0);
+}
+// Registro de las últimas interacciones (para diagnóstico).
+JV.log = [];
+function jvLog(k, v) { JV.log.push([new Date().toLocaleTimeString(), k, v]); if (JV.log.length > 60) JV.log.shift(); }
+const jvWanted = () => S.settings.jarvis !== false && (FSD || (BOOT && BOOT.kiosk) || /[?&]jarvis=1/.test(location.search));
+const jvScript = url => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = url; s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar ' + url)); document.head.appendChild(s); });
+function jvSet(state, note) {
+  JV.state = state; JV.note = note || '';
+  let el = $('jv');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'jv';
+    el.style.cssText = 'position:fixed;left:10px;bottom:6px;z-index:5;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;opacity:.55;pointer-events:none;display:flex;gap:6px;align-items:center;color:var(--muted,#9aa)';
+    document.body.appendChild(el);
+  }
+  const color = { loading: '#8a8f98', wake: '#2E9E5B', command: '#3b82f6', error: '#d9534f', off: 'transparent' }[state];
+  const text = { loading: 'Jarvis cargando…', wake: 'Jarvis', command: 'Jarvis te escucha', error: 'Jarvis: ' + JV.note, off: '' }[state];
+  el.innerHTML = state === 'off' ? '' : '<span style="width:7px;height:7px;border-radius:50%;background:' + color + '"></span>' + esc(text);
+}
+function jvResetWake() {
+  JV.mel = [];
+  JV.hist = []; for (let i = 0; i < 16; i++) JV.hist.push(new Float32Array(96));
+}
+async function jvLoadWake() {
+  if (!window.ort) await jvScript(JV.ORT + 'ort.min.js');
+  ort.env.wasm.wasmPaths = JV.ORT; ort.env.wasm.numThreads = 1;
+  const mk = f => ort.InferenceSession.create(JV.OWW + f, { executionProviders: ['wasm'] });
+  JV.sess = { mel: await mk('melspectrogram.onnx'), emb: await mk('embedding_model.onnx'), kw: await mk('hey_jarvis_v0.1.onnx') };
+  jvResetWake();
+}
+async function jvLoadVosk() {
+  if (!window.Vosk) await jvScript(JV.VOSK);
+  JV.model = await Vosk.createModel(JV.VOSK_MODEL);
+  JV.rec = new JV.model.KaldiRecognizer(JV.RATE);
+  // Segundo reconocedor con vocabulario cerrado: mucho más preciso para comandos y compras habituales.
+  // Un segundo reconocedor con vocabulario cerrado (JV_VOCAB) mejora la precisión, pero dos a la vez son
+  // demasiado lentos para esta tablet: los resultados llegan tarde. Queda desactivado.
+  JV.recG = null;
+  JV.rec.on('partialresult', m => {
+    if (JV.state !== 'command') return;
+    const sh = S.ui.sheet; const t = (m.result && m.result.partial) || '';
+    if (sh && sh.kind === 'voice' && sh.phase === 'listen' && t) { sh.heard = t; const el = $('v-heard'); if (el) el.textContent = '“' + t + '”'; }
+  });
+  JV.rec.on('result', m => jvPick('o', ((m.result && m.result.text) || '').trim()));
+  JV.rec.on('error', m => jvSet('error', 'dictado: ' + String((m && m.error) || m).slice(0, 80)));
+}
+// Un bloque de 80 ms -> puntaje de "hey jarvis" (0..1). Devuelve el máximo del bloque.
+async function jvWake(chunk) {
+  const s = JV.sess; let best = 0;
+  let input = chunk;
+  if (JV.SCALE !== 1) { input = new Float32Array(chunk.length); for (let i = 0; i < chunk.length; i++) input[i] = chunk[i] * JV.SCALE; }
+  const melOut = await s.mel.run({ [s.mel.inputNames[0]]: new ort.Tensor('float32', input, [1, JV.FRAME]) });
+  const md = melOut[s.mel.outputNames[0]].data;
+  const frames = Math.floor(md.length / 32);
+  for (let j = 0; j < frames; j++) { const f = new Float32Array(32); for (let k = 0; k < 32; k++) f[k] = md[j * 32 + k] / 10 + 2; JV.mel.push(f); }
+  while (JV.mel.length >= 76) {
+    const flat = new Float32Array(76 * 32);
+    for (let j = 0; j < 76; j++) flat.set(JV.mel[j], j * 32);
+    const eo = await s.emb.run({ [s.emb.inputNames[0]]: new ort.Tensor('float32', flat, [1, 76, 32, 1]) });
+    JV.hist.shift(); JV.hist.push(new Float32Array(eo[s.emb.outputNames[0]].data));
+    const he = new Float32Array(16 * 96);
+    for (let j = 0; j < 16; j++) he.set(JV.hist[j], j * 96);
+    const ko = await s.kw.run({ [s.kw.inputNames[0]]: new ort.Tensor('float32', he, [1, 16, 96]) });
+    const score = ko[s.kw.outputNames[0]].data[0];
+    if (score > best) best = score;
+    JV.mel.splice(0, 8);
+  }
+  return best;
+}
+// Nivel de ruido de fondo (se actualiza mientras espera "Hey Jarvis").
+JV.floor = 0.004;
+function jvRms(c) { let s = 0; for (let i = 0; i < c.length; i += 2) s += c[i] * c[i]; return Math.sqrt(s / (c.length / 2)); }
+// Graba la frase después del pitido: termina tras ~1 s de silencio, o a los 8 s.
+function jvRecord(chunk) {
+  const R = JV.recd; if (!R) return;
+  const rms = jvRms(chunk);
+  R.chunks.push(chunk.slice(0));
+  const speechTh = Math.max(0.02, JV.floor * 5), quietTh = Math.max(0.01, JV.floor * 2.5);
+  if (rms > speechTh) { R.speech++; R.quiet = 0; } else if (R.speech > 0 && rms < quietTh) R.quiet++;
+  const ms = R.chunks.length * 80;
+  const enough = R.speech >= 6;   // ~0,5 s de voz clara
+  if (enough && R.quiet >= 12) jvSend();
+  else if (ms >= 8000) { if (enough) jvSend(); else { jvLog('poca voz', R.speech); JV.recd = null; jvFinish(''); } }
+  else if (!enough && R.quiet >= 20) { jvLog('sin voz', R.speech); JV.recd = null; jvFinish(''); }
+}
+function jvWav(chunks) {
+  // Recorta el silencio inicial y final, y arma un WAV de 16 kHz, 16 bit, mono.
+  let a = 0, b = chunks.length;
+  const th = Math.max(0.01, JV.floor * 2.5);
+  while (a < b - 1 && jvRms(chunks[a]) < th) a++;
+  a = Math.max(0, a - 3);
+  const n = (b - a) * JV.FRAME, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, JV.RATE, true); v.setUint32(28, JV.RATE * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  let o = 44;
+  for (let k = a; k < b; k++) { const c = chunks[k]; for (let i = 0; i < c.length; i++) { const x = Math.max(-1, Math.min(1, c[i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7fff, true); o += 2; } }
+  let bin = ''; const u8 = new Uint8Array(buf);
+  for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+// Instrucción de transcripción: literal, sin inventar (con ruido o silencio responde NADA).
+const JV_STT_PROMPT = 'Transcribí literalmente, palabra por palabra, solo lo que una persona dice en este audio (español de Paraguay). ' +
+  'Si una palabra suena mal pronunciada, escribí la palabra en español más probable, pero no agregues, no completes y no adivines palabras que no se dijeron. ' +
+  'Escribí los números con cifras. Si no hay una persona hablando con claridad (silencio, ruido, música), respondé exactamente: NADA';
+async function jvSend() {
+  const R = JV.recd; if (!R) return;
+  JV.recd = null; clearTimeout(JV.cmdT);
+  JV.state = 'flush'; jvSet('command', 'pensando');
+  const sh = S.ui.sheet; if (sh && sh.jarvis) { sh.heard = '…'; const el = $('v-heard'); if (el) el.textContent = 'Pensando…'; }
+  const t0 = Date.now();
+  try {
+    const r = await Promise.race([apiPost('stt', { audio: jvWav(R.chunks), mime: 'audio/wav', prompt: JV_STT_PROMPT }), new Promise((_, ko) => setTimeout(() => ko(new Error('tiempo agotado')), 15000))]);
+    jvLog('gemini', { text: r.text, ms: Date.now() - t0 });
+    const t = String(r.text || '').trim();
+    jvFinish(/^(nada|nada\.)$/i.test(t) || t.length < 3 ? '' : t);
+  } catch (e) {
+    jvLog('gemini error', String(e.message || e));
+    jvFinish('');
+    toast('Jarvis no pudo conectarse: ' + (e.message || e));
+  }
+}
+function jvFeed(chunk) {
+  if (JV.state === 'command') { jvRecord(chunk); return; }
+  if (JV.state === 'wake') { const r = jvRms(chunk); if (r < JV.floor * 4) JV.floor = JV.floor * 0.98 + r * 0.02; }
+  if (JV.state === 'flush') return;
+  if (JV.state !== 'wake') return;
+  JV.q = JV.q.then(async () => {
+    if (JV.state !== 'wake') return;
+    const score = await jvWake(chunk);
+    JV.score = score;
+    if (score > JV.THRESHOLD && Date.now() > JV.cool && Date.now() > (JV.mute || 0)) jvHeard();
+  }).catch(e => jvSet('error', String(e.message || e)));
+}
+function jvHeard() {
+  if (S.ui.ring) { stopRing(); jvLog('apagado por voz', ''); }
+  S.lastInput = Date.now(); exitAmbient(); unlockAudio(); beep();
+  JV.got = {}; clearTimeout(JV.pickT); jvLog('hey jarvis', +JV.score.toFixed(2));
+  JV.recd = { chunks: [], speech: 0, quiet: 0 };
+  S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '', jarvis: true };
+  renderOverlay();
+  jvSet('command');
+  clearTimeout(JV.cmdT);
+  JV.cmdT = setTimeout(() => { if (JV.state === 'command') { if (JV.recd && JV.recd.speech >= 6) jvSend(); else { JV.recd = null; jvFinish(''); } } }, 9000);
+}
+function jvFinish(text) {
+  clearTimeout(JV.cmdT); clearTimeout(JV.pickT); jvLog('dijo', text);
+  jvResetWake(); JV.cool = Date.now() + 1500;
+  jvSet('wake');
+  text = text.replace(/^(hey |oye |ey )?(jarvis|yarbis|yarvis)\s*/i, '').trim();
+  if (text) runCommand(text);
+  else if (S.ui.sheet && S.ui.sheet.jarvis) closeSheet();
+}
+setInterval(() => {
+  const sh = S.ui.sheet;
+  if (sh && sh.jarvis) { sh._t = sh._t || Date.now(); if (Date.now() - sh._t > 14000) { jvLog('cierre forzado', JV.state); JV.state = JV.state === 'off' ? 'off' : 'wake'; jvSet(JV.state); closeSheet(); } }
+}, 1000);
+async function jvStart() {
+  if (!jvWanted() || JV.state !== 'off') return;
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }); }
+  catch (e) { return; } // sin permiso de micrófono (p. ej. dentro de Apps Script): Jarvis queda apagado
+  jvSet('loading');
+  try {
+    await jvLoadWake();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: JV.RATE });
+    const code = 'class P extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(' + JV.FRAME + ');this.p=0;}process(i){const x=i[0][0];if(x){for(let k=0;k<x.length;k++){this.b[this.p++]=x[k];if(this.p===' + JV.FRAME + '){this.port.postMessage(this.b.slice(0));this.p=0;}}}return true;}}registerProcessor("jv",P);';
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: 'application/javascript' })));
+    const node = new AudioWorkletNode(ctx, 'jv');
+    node.port.onmessage = ev => {
+      const c = ev.data; let p = 0; for (let i = 0; i < c.length; i += 16) { const a = Math.abs(c[i]); if (a > p) p = a; }
+      JV.peak = Math.max(p, JV.peak * 0.95);
+      jvFeed(c);
+    };
+    const mute = ctx.createGain(); mute.gain.value = 0;
+    ctx.createMediaStreamSource(stream).connect(node); node.connect(mute); mute.connect(ctx.destination);
+    JV.ctx = ctx;
+    if (ctx.state === 'suspended') { const res = () => ctx.resume(); document.addEventListener('pointerdown', res, { once: true }); try { await ctx.resume(); } catch (e) { /* espera un toque */ } }
+    jvSet('wake');
+    setTimeout(() => mesLoad().catch(() => {}), 3000);
+  } catch (e) { jvSet('error', String(e.message || e)); }
+}
+// Pruebas sin micrófono: ?jvtest=archivo1.wav,archivo2.wav (se piden al mismo servidor y se informa a /jvlog).
+async function jvTest(list) {
+  const log = o => fetch('jvlog?' + encodeURIComponent(JSON.stringify(o))).catch(() => {});
+  const pcm = async name => {
+    const ab = await (await fetch(name)).arrayBuffer();
+    const dec = await new (window.AudioContext || window.webkitAudioContext)().decodeAudioData(ab);
+    const off = new OfflineAudioContext(1, Math.ceil(dec.duration * JV.RATE), JV.RATE);
+    const src = off.createBufferSource(); src.buffer = dec; src.connect(off.destination); src.start();
+    const d = (await off.startRendering()).getChannelData(0); const o = new Float32Array(d.length + JV.RATE * 3); o.set(d, JV.RATE * 2); return o;
+  };
+  try {
+    const t0 = performance.now();
+    await jvLoadWake(); await log({ step: 'wake cargado', ms: Math.round(performance.now() - t0) });
+    for (const name of list) {
+      const a = await pcm(name); const out = { file: name, secs: +(a.length / JV.RATE).toFixed(1) };
+      for (const scale of [1, 32767]) {
+        JV.SCALE = scale; jvResetWake(); let best = 0; const t1 = performance.now();
+        for (let i = 0; i + JV.FRAME <= a.length; i += JV.FRAME) { const sc = await jvWake(a.subarray(i, i + JV.FRAME)); if (sc > best) best = sc; }
+        out['wake_x' + scale] = +best.toFixed(3); out['ms_bloque_x' + scale] = +((performance.now() - t1) / (a.length / JV.FRAME)).toFixed(1);
+      }
+      await log(out);
+    }
+    JV.SCALE = 32767;
+    const t2 = performance.now();
+    await jvLoadVosk(); await log({ step: 'vosk cargado', ms: Math.round(performance.now() - t2) });
+    for (const name of list) {
+      const a = await pcm(name);
+      const rec = new JV.model.KaldiRecognizer(JV.RATE); let text = ''; const t3 = performance.now(); let fin;
+      const done = new Promise(r => { fin = r; });
+      let sent = false;
+      rec.on('result', m => { text += ' ' + ((m.result && m.result.text) || ''); if (sent) fin(); });
+      for (let i = 0; i < a.length; i += 4000) rec.acceptWaveformFloat(a.slice(i, i + 4000), JV.RATE);
+      sent = true; rec.retrieveFinalResult();
+      await Promise.race([done, new Promise(r => setTimeout(r, 60000))]);
+      let reply = ''; const t = text.trim();
+      if (/[?&]jvrun=1/.test(location.search) && t) { try { reply = await handleCommand(t); } catch (e) { reply = 'ERROR ' + e.message; } }
+      await log({ file: name, vosk: t, ms: Math.round(performance.now() - t3), audio_ms: Math.round(a.length / 16), reply: reply });
+      rec.remove();
+    }
+    await log({ step: 'fin', heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB' : '' });
+  } catch (e) { await log({ error: String(e && e.stack || e) }); }
+}
+
+/* ======================= Interfaz estilo Echo Show ======================= */
+const PAGES = 4;
+const UI = { page: 0, lastTab: null, scale: 1 };
+const DAYC = ['#8F8CFF', '#3ECF8E', '#FFB86B', '#5B9BFF'];
+const calColor = name => { const c = (S.data.calendars || []).find(x => x.name === name); return (c && c.color) || '#8F8CFF'; };
+const relIn = ms => { const m = Math.round(ms / 60000); return m < 1 ? 'ahora' : m < 60 ? 'en ' + m + ' min' : 'en ' + Math.round(m / 60) + ' h'; };
+
+function fit() {
+  const k = Math.min(innerWidth / 1280, innerHeight / 800);
+  UI.scale = k;
+  const st = $('stage');
+  st.style.transform = 'scale(' + k + ')';
+  st.style.left = Math.round((innerWidth - 1280 * k) / 2) + 'px';
+  st.style.top = Math.round((innerHeight - 800 * k) / 2) + 'px';
+}
+function setX(px, anim) {
+  const tr = $('track');
+  tr.classList.toggle('anim', !!anim);
+  tr.style.transform = 'translate3d(' + px + 'px,0,0)';
+}
+function goPage(n, quiet) {
+  UI.page = Math.max(0, Math.min(PAGES - 1, n));
+  setX(-UI.page * 1280, true);
+  document.querySelectorAll('#dots button').forEach((b, i) => b.setAttribute('aria-current', i === UI.page));
+  if (!quiet) S.lastInput = Date.now();
+}
+
+/* ---- Inicio ---- */
+function renderClock() {
+  const d = new Date(), t = hm(d);
+  const c = $('clock'); if (c.textContent !== t) c.textContent = t;
+  const a = $('amb-c'); if (a && a.textContent !== t) a.textContent = t;
+}
+function renderHeader() {
+  const d = new Date();
+  $('date').textContent = DL[d.getDay()] + ' ' + d.getDate() + ' de ' + MO[d.getMonth()];
+  $('status').textContent = syncText();
+  renderHomeCards();
+}
+function renderWeather() {
+  const w = S.weather;
+  if (!w) { $('wx-ic').innerHTML = ic('cloud', 96, 1.5); $('wx-temp').textContent = '--°'; $('wx-desc').textContent = 'Sin datos del clima'; $('fc').innerHTML = ''; return; }
+  $('wx-ic').innerHTML = ic(weatherIcon(w.code, w.isDay), 96, 1.5);
+  $('wx-temp').textContent = w.temp + '°';
+  $('wx-desc').textContent = WMO(w.code)[0] + ' · máx ' + w.max + '° mín ' + w.min + '°';
+  const t = new Date();
+  const days = [{ c: w.code, hi: w.max, lo: w.min, p: w.rain ? w.rain[0] : null, lbl: 'Hoy' }].concat((w.daily || []).slice(0, 4).map((x, i) => ({ c: x.c, hi: x.hi, lo: x.lo, p: x.p, lbl: i === 0 ? 'Mañana' : DS[addDays(t, i + 1).getDay()] })));
+  $('fc').innerHTML = days.map(x => {
+    const k = WMO(x.c)[1], col = k === 'sun' ? 'var(--orange)' : (k === 'rain' || k === 'storm') ? 'var(--blue)' : 'var(--soft)';
+    return '<div class="fd"><span class="d">' + x.lbl + '</span><span style="color:' + col + '">' + ic(k, 52, 1.6) + '</span><span class="h">' + x.hi + '°</span><span class="l">' + x.lo + '°</span>' + (x.p != null ? '<span class="p">' + x.p + '% lluvia</span>' : '') + '</div>';
+  }).join('');
+  $('fc-meta').textContent = S.settings.place || '';
+}
+function evRow(e, next) {
+  const time = e.allDay ? '<div class="t ad">Todo el día</div>' : '<div class="t">' + hm(new Date(e.start)) + '</div>';
+  const sub = next && !e.allDay ? '<div class="s">' + relIn(new Date(e.start) - Date.now()) + '</div>' : '';
+  return '<div class="ev' + (next ? ' next' : '') + '"><div class="dot" style="background:' + esc(e.color || calColor(e.calendar)) + '"></div>' + time + '<div style="min-width:0"><div class="n">' + esc(e.title) + '</div>' + sub + '</div></div>';
+}
+function renderAgenda() {
+  const now = new Date(), today = ymd(now), tom = ymd(addDays(now, 1));
+  const ev = eventsOn(today).filter(e => e.allDay || new Date(e.end || e.start) > now);
+  const nextIdx = ev.findIndex(e => !e.allDay);
+  $('today').innerHTML = ev.slice(0, 4).map((e, i) => evRow(e, i === nextIdx)).join('') || '<div class="empty">No te quedan eventos hoy.</div>';
+  $('today-meta').textContent = ev.length ? ev.length + (ev.length === 1 ? ' evento' : ' eventos') : '';
+  const et = eventsOn(tom);
+  $('tom').innerHTML = et.slice(0, 2).map(e => evRow(e, false)).join('') || '<div class="empty">Nada agendado.</div>';
+  // Semana: los 6 días siguientes a mañana
+  let html = '';
+  for (let i = 1; i <= 6; i++) {
+    const d = addDays(now, i), key = ymd(d), list = eventsOn(key);
+    html += '<div class="wd"><div class="dh">' + (i === 1 ? 'Mañana' : DL[d.getDay()] + ' ' + d.getDate()) + '</div>' +
+      (list.slice(0, 2).map(e => '<div class="we"><b>' + (e.allDay ? '•' : hm(new Date(e.start))) + '</b>' + esc(e.title) + '</div>').join('') || '<div class="none">Libre</div>') +
+      (list.length > 2 ? '<div class="none">+' + (list.length - 2) + ' más</div>' : '') + '</div>';
+  }
+  $('week').innerHTML = html;
+}
+
+/* ---- Listas ---- */
+function listHtml(kind, arr) {
+  return sortItems(arr).slice(0, 7).map(x => {
+    const dl = kind === 'tasks' && !x.done ? dueLabel(x.due) : null;
+    return '<button class="it' + (x.done ? ' done' : '') + '" data-act="tog" data-kind="' + kind + '" data-arg="' + esc(x.id) + '" aria-pressed="' + !!x.done + '">' +
+      '<span class="box">' + (x.done ? ic('check', 28, 3) : '') + '</span><span class="tx">' + esc(x.title) + '</span>' +
+      (dl ? '<span class="due' + (dl.late ? ' late' : '') + '">' + esc(dl.t) + '</span>' : '') + '</button>';
+  }).join('') || '<div class="empty">' + (kind === 'shop' ? 'Nada para comprar.' : 'Sin tareas pendientes.') + '</div>';
+}
+function renderLists() {
+  const t = S.data.tasks || [], s = S.data.shop || [];
+  const kt = JSON.stringify(t.map(x => [x.id, x.title, x.done, x.due])), ks = JSON.stringify(s.map(x => [x.id, x.title, x.done]));
+  if (kt !== UI.kt) { UI.kt = kt; $('tasks').innerHTML = listHtml('tasks', t); }
+  if (ks !== UI.ks) { UI.ks = ks; $('shop').innerHTML = listHtml('shop', s); }
+  const tl = t.filter(x => !x.done).length, sl = s.filter(x => !x.done).length;
+  $('t-meta').textContent = tl + (tl === 1 ? ' pendiente' : ' pendientes');
+  $('s-meta').textContent = sl + ' por comprar';
+}
+// Los comandos de voz cambian S.ui.tab: se muestra la pantalla que corresponde.
+function renderTabs() {
+  if (S.ui.tab === UI.lastTab) return;
+  UI.lastTab = S.ui.tab;
+  const p = { agenda: 0, tareas: 1, compras: 1 }[S.ui.tab];
+  if (p != null && UI.started) goPage(p, true);
+}
+
+/* ---- Timers y alarmas ---- */
+function timerHtml(t, cls) {
+  const r = remaining(t), st = t.st === 'done' ? '¡Listo!' : t.st === 'run' ? 'En curso' : 'En pausa';
+  const pct = t.total ? Math.min(100, (t.total - r) / t.total * 100) : 0;
+  return '<div class="' + cls + (t.st === 'done' ? ' done' : '') + '" data-tid="' + t.id + '"><div class="info"><span class="lbl">' + esc(t.label) + ' · ' + st + '</span>' +
+    '<span class="big" data-disp>' + fmtSecs(r) + '</span><div class="bar"><div data-bar style="width:' + pct + '%"></div></div></div>' +
+    (cls === 'tm' ? '<button class="rb" data-act="ttoggle" data-arg="' + t.id + '" aria-label="Pausar o seguir">' + ic(t.st === 'run' ? 'pause' : t.st === 'done' ? 'reset' : 'play', 28, 2.4) + '</button>' +
+      '<button class="rb" data-act="tremove" data-arg="' + t.id + '" aria-label="Quitar timer">' + ic('x', 28, 2.4) + '</button>' : '') + '</div>';
+}
+function renderHomeCards() {
+  const t = S.timers.find(x => x.st === 'run') || S.timers.find(x => x.st === 'done') || S.timers[0];
+  const na = nextAlarm();
+  let h = '';
+  if (t) h += '<button class="card" style="flex:1" data-act="go" data-arg="3">' + timerHtml(t, 'tmh').replace('class="tmh', 'style="display:flex;flex-direction:column;gap:8px" class="tmh') + '</button>';
+  else h += '<button class="card" style="flex:1" data-act="go" data-arg="3"><span class="lbl">' + ic('timer', 26) + 'Timers</span><span class="big" style="font-size:40px;color:var(--muted)">Ninguno</span><span class="lbl">Tocá para agregar uno</span></button>';
+  h += '<button class="card" style="width:210px" data-act="go" data-arg="3"><span class="lbl">' + ic('alarm', 26) + 'Alarma</span><span class="big">' + (na ? na.time : '--:--') + '</span><span class="lbl">' + (na ? daysText(na) : 'Sin alarmas') + '</span></button>';
+  $('home-cards').innerHTML = h;
+}
+function renderTimersCard() {
+  S.ui.ta = 'timers';
+  $('timers').innerHTML = S.timers.slice(0, 4).map(t => timerHtml(t, 'tm')).join('') || '<div class="empty">Sin timers. Tocá un tiempo o pedíselo a Jarvis.</div>';
+  const run = S.timers.filter(t => t.st === 'run').length;
+  $('tm-meta').textContent = run ? run + ' en curso' : '';
+  $('alarms').innerHTML = S.alarms.slice().sort((a, b) => a.time < b.time ? -1 : 1).slice(0, 5).map(a =>
+    '<div class="al' + (a.on ? '' : ' off') + '"><div style="flex:1;min-width:0"><div class="big">' + a.time + '</div><div class="meta">' + esc(daysText(a)) + '</div></div>' +
+    '<button class="sw" role="switch" aria-checked="' + a.on + '" aria-label="Alarma ' + a.time + '" data-act="atoggle" data-arg="' + a.id + '"></button>' +
+    '<button class="rb" data-act="aremove" data-arg="' + a.id + '" aria-label="Borrar alarma ' + a.time + '">' + ic('x', 26, 2.4) + '</button></div>').join('') || '<div class="empty">Sin alarmas.</div>';
+  const on = S.alarms.filter(a => a.on).length;
+  $('al-meta').textContent = on + (on === 1 ? ' activa' : ' activas');
+  renderHomeCards();
+}
+
+/* ---- Capas ---- */
+function renderOverlay() {
+  const ov = $('ov'), r = S.ui.ring, sh = S.ui.sheet;
+  if (r) {
+    ov.className = 'on';
+    ov.innerHTML = '<div class="rg"><div class="t1">' + esc(r.title) + '</div><div class="t2">' + esc(r.label || '') + '</div><button class="stop" data-act="stopring">Detener</button></div>';
+  } else if (sh && sh.kind === 'voice') {
+    ov.className = 'on';
+    const cls = sh.phase === 'done' ? 'done' : JV.state === 'flush' ? 'thinking' : '';
+    const heard = sh.heard ? '“' + esc(sh.heard) + '”' : (sh.phase === 'listen' ? 'Te escucho…' : '');
+    ov.innerHTML = '<div class="vs ' + cls + '" data-act="closesheet"><div class="heard" id="v-heard">' + heard + '</div>' +
+      (sh.reply ? '<div class="reply">' + esc(sh.reply) + '</div>' : '') + '<div class="glow"></div></div>';
+  } else if (S.ui.ambient) {
+    ov.className = 'on';
+    const d = new Date(), night = d.getHours() >= 22 || d.getHours() < 6, w = S.weather;
+    const nx = eventsOn(ymd(d)).find(e => !e.allDay && new Date(e.start) > d);
+    ov.innerHTML = '<div class="amb' + (night ? ' night' : '') + '" data-act="unambient"><div class="c" id="amb-c">' + hm(d) + '</div>' +
+      '<div class="s">' + (w ? w.temp + '° · ' : '') + (nx ? hm(new Date(nx.start)) + ' ' + esc(nx.title) : DL[d.getDay()] + ' ' + d.getDate()) + '</div></div>';
+  } else { ov.className = ''; ov.innerHTML = ''; }
+}
+function closeSheet() { S.ui.sheet = null; renderOverlay(); }
+function toast(text) { const t = $('toast'); t.textContent = text; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 3200); }
+function enterAmbient() { if (S.ui.ring || S.ui.sheet) return; S.ui.ambient = true; renderOverlay(); }
+function exitAmbient() { if (!S.ui.ambient) return; S.ui.ambient = false; S.lastInput = Date.now(); renderOverlay(); }
+function applyTheme() { /* tema oscuro fijo */ }
+// Sin uso: vuelve a Inicio a los 45 s; de noche (22–6 h) pasa al reloj nocturno a los 2 min.
+function checkIdle() {
+  const idle = Date.now() - S.lastInput;
+  if (UI.page !== 0 && idle > 45000 && !S.ui.sheet && !S.ui.ring) goPage(0, true);
+  const h = new Date().getHours();
+  if (!S.ui.ambient && (h >= 22 || h < 6) && idle > 120000) enterAmbient();
+}
+
+/* ---- Toques, formularios y deslizamiento ---- */
+const ACTIONS = {
+  go: a => goPage(+a),
+  tog: (a, el) => toggleItem(el.dataset.kind === 'shop' ? 'shop' : 'tasks', a),
+  clear: a => clearDone(a === 'shop' ? 'shop' : 'tasks'),
+  preset: a => { unlockAudio(); addTimer(+a * 60, a + ' min'); },
+  ttoggle: a => timerToggle(a),
+  tremove: a => { S.timers = S.timers.filter(t => t.id !== a); saveTimers(); renderTimersCard(); },
+  atoggle: a => { const x = S.alarms.find(z => z.id === a); if (x) { x.on = !x.on; saveAlarms(); renderTimersCard(); } },
+  aremove: a => { S.alarms = S.alarms.filter(z => z.id !== a); saveAlarms(); renderTimersCard(); },
+  aadd: () => {
+    const t = $('al-time').value || '07:00', v = $('al-days').value;
+    const days = v === 'wk' ? [1, 2, 3, 4, 5] : v === 'all' ? [0, 1, 2, 3, 4, 5, 6] : v === 'we' ? [0, 6] : [];
+    S.alarms.push({ id: 'a' + Date.now(), time: t, label: 'Alarma', days: days, on: true }); saveAlarms(); renderTimersCard(); toast('Alarma para las ' + t);
+  },
+  stopring: () => stopRing(),
+  closesheet: () => closeSheet(),
+  unambient: () => exitAmbient(),
+  talk: () => { unlockAudio(); if (JV.state === 'wake') jvHeard(); else toast('Jarvis todavía está cargando…'); }
+};
+function bindInput() {
+  const tr = $('track'), st = $('stage');
+  let x0 = null, y0 = 0, dx = 0, moved = false, t0 = 0;
+  st.addEventListener('pointerdown', e => {
+    S.lastInput = Date.now(); unlockAudio(); exitAmbient();
+    if (e.target.closest('input,select,#ov.on,#dots,#top')) return;
+    x0 = e.clientX; y0 = e.clientY; dx = 0; moved = false; t0 = performance.now();
+  }, { passive: true });
+  st.addEventListener('pointermove', e => {
+    if (x0 === null) return;
+    dx = (e.clientX - x0) / UI.scale;
+    if (!moved && Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(e.clientY - y0)) moved = true;
+    if (!moved) return;
+    let d = dx;
+    if ((UI.page === 0 && d > 0) || (UI.page === PAGES - 1 && d < 0)) d = d / 4;
+    setX(-UI.page * 1280 + d, false);
+  }, { passive: true });
+  const end = () => {
+    if (x0 === null) return;
+    x0 = null;
+    if (!moved) return;
+    const v = Math.abs(dx) / Math.max(1, performance.now() - t0);
+    if (dx < -110 || (dx < -40 && v > 0.5)) goPage(UI.page + 1); else if (dx > 110 || (dx > 40 && v > 0.5)) goPage(UI.page - 1); else goPage(UI.page);
+    UI.swallow = Date.now();
+  };
+  st.addEventListener('pointerup', end); st.addEventListener('pointercancel', end); st.addEventListener('pointerleave', end);
+  st.addEventListener('click', e => {
+    if (UI.swallow && Date.now() - UI.swallow < 350) { e.preventDefault(); return; }
+    const el = e.target.closest('[data-act]'); if (!el) return;
+    const fn = ACTIONS[el.dataset.act]; if (fn) fn(el.dataset.arg, el);
+  });
+  document.querySelectorAll('form[data-form]').forEach(f => f.addEventListener('submit', e => {
+    e.preventDefault();
+    const inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
+    addItem(f.dataset.form === 'shop' ? 'shop' : 'tasks', v); inp.value = ''; inp.blur(); renderLists();
+  }));
+}
+
+let wakeLock = null;
+async function keepAwake() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* no soportado */ } }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { keepAwake(); sync(); renderAll(); } });
+function renderAll() { renderClock(); renderWeather(); renderTimersCard(); renderAgenda(); renderLists(); renderHeader(); }
+function init() {
+  fit(); addEventListener('resize', fit);
+  $('mic').innerHTML = ic('mic', 30, 2);
+  $('presets').innerHTML = [1, 3, 5, 10, 15, 30].map(n => '<button class="pre" data-act="preset" data-arg="' + n + '">' + n + ' min</button>').join('');
+  S.data = isDemo() ? demoData() : LS.get('cache', { events: [], tasks: [], shop: [], calendars: [] });
+  S.weather = LS.get('weather', null);
+  bindInput(); goPage(0, true); renderAll();
+  loadWeather(); sync(); keepAwake();
+  UI.lastTab = S.ui.tab; UI.started = true;
+  let lastMinute = -1;
+  setInterval(() => {
+    const d = new Date();
+    tickTimers();
+    if (d.getMinutes() !== lastMinute) { lastMinute = d.getMinutes(); renderClock(); checkAlarms(); renderAgenda(); renderHeader(); if (S.ui.ambient) renderOverlay(); }
+    checkIdle();
+  }, 1000);
+  setInterval(sync, 60 * 1000);
+  setInterval(loadWeather, 20 * 60 * 1000);
+  addEventListener('online', () => { sync(); loadWeather(); });
+}
+init();
+{ const jt = location.search.match(/[?&]jvtest=([^&]+)/); if (jt) jvTest(decodeURIComponent(jt[1]).split(',')); else setTimeout(jvStart, 2500); }
+</script>
+</body>
+</html>
