@@ -1,0 +1,1512 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F241B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Casa · Dashboard familiar</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=Fraunces:wght@300;600&family=Outfit:wght@300;400;500;600;700&family=Nunito+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================== Temas =========================== */
+:root, [data-theme="clasico"] {
+  --bg: #F2F1EE; --card: #FFFFFF; --sheet: #FFFFFF; --sub: #F6F5F2; --text: #1C1C1E; --muted: #66666B; --line: #E8E6E1; --ring: #BDBAB3;
+  --accent: #2F6FEB; --accentText: #2F6FEB; --accentTint: rgba(47,111,235,.10);
+  --green: #2E9E5B; --greenTint: rgba(46,158,91,.12); --greenText: #1F7A44;
+  --violet: #6D4AE8; --violetTint: rgba(124,92,255,.12); --violetText: #5B3FD6;
+  --orange: #B45309; --orangeSolid: #D9622B; --orangeTint: rgba(232,131,58,.13); --mutedBar: #B9B6AF;
+  --sunBg: rgba(232,131,58,.13); --sunFg: #D9731F; --rain: #2F6FEB; --track: #D6D3CC;
+  --shadow: 0 1px 2px rgba(20,20,20,.04), 0 10px 30px rgba(20,20,20,.05);
+  --scrim: rgba(242,241,238,.62); --orbOuter: rgba(47,111,235,.08); --orbMid: rgba(47,111,235,.16);
+  --cardBorder: 1px solid transparent; --blur: none; --radius: 28px;
+  --font: Inter, system-ui, -apple-system, sans-serif; --display: Inter, system-ui, sans-serif;
+  --clockW: 300; --headW: 600; --toastBg: #1C1C1E; --toastFg: #FFFFFF;
+}
+[data-theme="noche"] {
+  --bg: #0E0F11; --card: #1A1B1F; --sheet: #1A1B1F; --sub: #24252A; --text: #F4F4F5; --muted: #A1A1AA; --line: #2E2F35; --ring: #55565E;
+  --accent: #3B6FE0; --accentText: #8DB1FF; --accentTint: rgba(91,140,255,.16);
+  --green: #2E9E5B; --greenTint: rgba(76,196,126,.16); --greenText: #6FD69A;
+  --violet: #6D4AE8; --violetTint: rgba(150,125,255,.18); --violetText: #B3A3FF;
+  --orange: #F5A66B; --orangeSolid: #D9622B; --orangeTint: rgba(232,131,58,.18); --mutedBar: #5A5B62;
+  --sunBg: rgba(242,154,90,.16); --sunFg: #F5A66B; --rain: #8DB1FF; --track: #3A3B42;
+  --shadow: none; --scrim: rgba(5,6,8,.62); --orbOuter: rgba(91,140,255,.12); --orbMid: rgba(91,140,255,.24);
+  --toastBg: #FFFFFF; --toastFg: #1C1C1E;
+}
+[data-theme="navidad"] {
+  --bg: radial-gradient(900px 500px at 85% -10%, #1F4633 0%, rgba(15,36,27,0) 70%), #0F241B;
+  --card: rgba(23,51,38,.92); --sheet: #173326; --sub: #1F3F30; --text: #FFF7EA; --muted: #C5D3C8; --line: #2C4C3C; --ring: #678A76;
+  --accent: #C8312C; --accentText: #FF9A8F; --accentTint: rgba(200,49,44,.22);
+  --green: #2E9E5B; --greenTint: rgba(111,214,154,.14); --greenText: #8FE0B0;
+  --violet: #A8771F; --violetTint: rgba(231,184,81,.18); --violetText: #F0C766;
+  --orange: #F5A66B; --orangeSolid: #D9622B; --orangeTint: rgba(232,131,58,.2); --mutedBar: #678A76;
+  --sunBg: rgba(240,199,102,.16); --sunFg: #F0C766; --rain: #9EC1FF; --track: #35574A;
+  --shadow: none; --scrim: rgba(8,20,14,.7); --orbOuter: rgba(200,49,44,.16); --orbMid: rgba(200,49,44,.3);
+  --cardBorder: 1px solid rgba(240,199,102,.16); --radius: 24px; --display: Fraunces, Georgia, serif;
+  --toastBg: #FFFFFF; --toastFg: #1C1C1E;
+}
+[data-theme="verano"] {
+  --bg: #FFF4E6; --card: #FFFFFF; --sheet: #FFFFFF; --sub: #FFF8EF; --text: #2A1D12; --muted: #6E5E50; --line: #F1E2CF; --ring: #D6BFA3;
+  --accent: #C2410C; --accentText: #B23A0A; --accentTint: rgba(194,65,12,.10);
+  --green: #0F8A7E; --greenTint: rgba(15,138,126,.12); --greenText: #0B6E64;
+  --violet: #0E7490; --violetTint: rgba(14,116,144,.12); --violetText: #0E6580;
+  --mutedBar: #D6BFA3; --sunBg: rgba(224,122,22,.14); --sunFg: #E07A16; --rain: #0E7490; --track: #E8D6C0;
+  --scrim: rgba(255,244,230,.62); --orbOuter: rgba(194,65,12,.08); --orbMid: rgba(194,65,12,.16);
+  --font: Outfit, system-ui, sans-serif; --display: Outfit, system-ui, sans-serif;
+}
+[data-theme="asistente"] {
+  --bg: linear-gradient(160deg, #0A1622 0%, #0D2234 55%, #0B2A3A 100%);
+  --card: rgba(17,35,52,.92); --sheet: #112334; --sub: #183048; --text: #FFFFFF; --muted: #A7BED1; --line: #22384D; --ring: #4D6A84;
+  --accent: #0B7FB8; --accentText: #5CC8F5; --accentTint: rgba(31,169,225,.16);
+  --green: #1E9E6A; --greenTint: rgba(70,210,150,.14); --greenText: #7BE3B5;
+  --violet: #6D4AE8; --violetTint: rgba(150,125,255,.18); --violetText: #B3A3FF;
+  --orange: #F5A66B; --orangeSolid: #D9622B; --orangeTint: rgba(232,131,58,.18); --mutedBar: #4D6A84;
+  --sunBg: rgba(242,154,90,.16); --sunFg: #F5B36B; --rain: #5CC8F5; --track: #2A445C;
+  --shadow: none; --scrim: rgba(4,10,16,.66); --orbOuter: rgba(31,169,225,.15); --orbMid: rgba(31,169,225,.3);
+  --radius: 20px; --font: "Nunito Sans", system-ui, sans-serif; --display: "Nunito Sans", system-ui, sans-serif; --headW: 700;
+  --toastBg: #FFFFFF; --toastFg: #1C1C1E;
+}
+[data-theme="material"] {
+  --bg: #FBF9F2; --card: #ECE8DC; --sheet: #F3F0E6; --sub: #F8F5EC; --text: #1D1C16; --muted: #5D5B4F; --line: #D9D4C3; --ring: #9C9784;
+  --accent: #4A6440; --accentText: #3F5836; --accentTint: rgba(74,100,64,.14);
+  --green: #2E7D4F; --greenTint: rgba(46,125,79,.14); --greenText: #24653F;
+  --violet: #6B5778; --violetTint: rgba(107,87,120,.14); --violetText: #5A4867;
+  --orange: #A0430F; --orangeSolid: #B8561E; --orangeTint: rgba(184,86,30,.14); --mutedBar: #B5B09D;
+  --sunBg: rgba(184,86,30,.12); --sunFg: #B8561E; --rain: #3F5836; --track: #CFC9B6;
+  --shadow: none; --scrim: rgba(251,249,242,.6); --orbOuter: rgba(74,100,64,.10); --orbMid: rgba(74,100,64,.2);
+  --radius: 32px; --font: Outfit, system-ui, sans-serif; --display: Outfit, system-ui, sans-serif; --clockW: 400;
+}
+[data-theme="cristal"] {
+  --bg: radial-gradient(600px 500px at 8% 8%, #FFD3B6 0%, rgba(255,211,182,0) 62%), radial-gradient(700px 600px at 92% 18%, #B9D7FF 0%, rgba(185,215,255,0) 62%), radial-gradient(800px 600px at 50% 105%, #D8C8FF 0%, rgba(216,200,255,0) 62%), #EEF0F6;
+  --card: rgba(255,255,255,.56); --sheet: rgba(255,255,255,.92); --sub: rgba(255,255,255,.6); --text: #1C1C1E; --muted: #55555B; --line: rgba(0,0,0,.08); --ring: #AEAEB2;
+  --accent: #0066D6; --accentText: #0058BB; --accentTint: rgba(0,102,214,.10);
+  --green: #248A3D; --greenTint: rgba(36,138,61,.12); --greenText: #1D7533;
+  --violet: #8E3FBF; --violetTint: rgba(142,63,191,.12); --violetText: #7A32A8;
+  --orange: #B25000; --sunBg: rgba(255,149,0,.14); --sunFg: #D97706; --rain: #0066D6; --track: rgba(120,120,128,.24);
+  --shadow: 0 8px 32px rgba(31,38,135,.08); --scrim: rgba(240,242,248,.5); --orbOuter: rgba(0,102,214,.08); --orbMid: rgba(0,102,214,.16);
+  --blur: blur(24px) saturate(1.6); --cardBorder: 1px solid rgba(255,255,255,.7); --radius: 26px; --clockW: 200;
+}
+
+/* =========================== Base =========================== */
+:root { --gap: 16px; --pad: 24px; --cardPad: 22px; --garland: 0px; }
+@media (max-width: 1099px) { :root { --gap: 12px; --pad: 16px; --cardPad: 16px; } }
+[data-theme="navidad"] body.anim { --garland: 10px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); background-attachment: fixed; color: var(--text); font-family: var(--font);
+  -webkit-font-smoothing: antialiased; overflow: hidden; transition: background .4s; user-select: none; -webkit-user-select: none;
+}
+input { user-select: text; -webkit-user-select: text; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+svg { display: block; flex-shrink: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.sb { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+#app {
+  position: relative; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: var(--gap);
+  padding: calc(var(--pad) + var(--garland)) var(--pad) var(--pad);
+}
+
+/* Header */
+.top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.head-l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.headline { font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.date { font-family: var(--display); font-weight: var(--headW); font-size: clamp(20px, 2.2vw, 28px); letter-spacing: -.02em; white-space: nowrap; }
+.head-r { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.pill { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px; border-radius: 26px; background: var(--card); border: var(--cardBorder); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.ibtn { width: 52px; height: 52px; border-radius: 26px; border: var(--cardBorder); background: var(--card); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); display: flex; align-items: center; justify-content: center; padding: 0; }
+.talk { height: 52px; padding: 0 22px 0 16px; border-radius: 26px; border: 0; background: var(--accent); color: #FFF; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+.dot { width: 8px; height: 8px; border-radius: 4px; display: inline-block; flex-shrink: 0; }
+
+/* Grid */
+.grid {
+  position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; display: grid; gap: var(--gap);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "clock agenda tasks" "timers agenda shop";
+}
+.card {
+  min-height: 0; background: var(--card); border: var(--cardBorder); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border-radius: var(--radius); padding: var(--cardPad); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; transition: background .4s;
+}
+#c-clock { grid-area: clock; justify-content: space-between; }
+#c-timers { grid-area: timers; gap: 10px; }
+#c-agenda { grid-area: agenda; }
+#c-tasks { grid-area: tasks; gap: 6px; }
+#c-shop { grid-area: shop; gap: 6px; }
+.tabs { display: none; grid-area: tabs; padding: 4px; gap: 4px; border-radius: 16px; background: var(--card); border: var(--cardBorder); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: var(--shadow); }
+.tabs button { flex: 1 1 0; border: 0; border-radius: 12px; background: transparent; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: #FFF; }
+.tabs .n { font-size: 12px; opacity: .75; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1099px) {
+  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-rows: 52px minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "clock tabs" "clock panel" "timers panel"; }
+  .tabs { display: flex; }
+  #c-agenda, #c-tasks, #c-shop { grid-area: panel; }
+  .grid[data-tab="agenda"] #c-tasks, .grid[data-tab="agenda"] #c-shop,
+  .grid[data-tab="tareas"] #c-agenda, .grid[data-tab="tareas"] #c-shop,
+  .grid[data-tab="compras"] #c-agenda, .grid[data-tab="compras"] #c-tasks { display: none; }
+  .pill.alarm { display: none; }
+  .clock { font-size: 64px; }
+  #c-clock { gap: 8px; overflow: hidden; }
+  .fc div { padding: 6px 0; }
+  .banner { padding: 6px 10px; }
+  .banner .btn { height: 36px !important; }
+  .chip { padding: 0 10px; }
+}
+@media (max-width: 699px) {
+  body { overflow: auto; }
+  #app { height: auto; min-height: 100dvh; }
+  .top { flex-wrap: wrap; }
+  .head-r { width: 100%; justify-content: flex-end; }
+  .grid { display: flex; flex-direction: column; }
+  .tabs { display: none !important; }
+  #c-agenda, #c-tasks, #c-shop { display: flex !important; }
+  .list { max-height: 420px; }
+  #c-clock { gap: 16px; }
+}
+
+/* Card header */
+.ch { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+.ch-l { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ch h2 { margin: 0; font-family: var(--display); font-size: 18px; font-weight: var(--headW); }
+.ico { width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ico.a { background: var(--accentTint); color: var(--accentText); }
+.ico.g { background: var(--greenTint); color: var(--greenText); }
+.ico.v { background: var(--violetTint); color: var(--violetText); }
+.link { height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--accentText); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.list { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; overscroll-behavior: contain; }
+.list.gap8 { gap: 8px; }
+.empty { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 12px; text-align: center; color: var(--muted); font-size: 14px; }
+.empty b { color: var(--text); font-size: 17px; }
+
+/* Clock & weather */
+.clock { font-family: var(--display); font-weight: var(--clockW); font-size: clamp(60px, 8vw, 112px); line-height: .95; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.wx-now { display: flex; align-items: center; gap: 14px; }
+.wx-ic { width: clamp(48px, 5vw, 60px); height: clamp(48px, 5vw, 60px); flex-shrink: 0; border-radius: 18px; background: var(--sunBg); color: var(--sunFg); display: flex; align-items: center; justify-content: center; }
+.temp { font-size: clamp(30px, 3.7vw, 44px); font-weight: 600; line-height: 1; letter-spacing: -.03em; }
+.fc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.fc div { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: clamp(6px, 1vw, 10px) 0; border-radius: 16px; background: var(--sub); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fc small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.fc i { font-style: normal; font-weight: 400; color: var(--muted); }
+
+/* Segmented */
+.seg { display: flex; padding: 4px; border-radius: 14px; background: var(--sub); gap: 4px; }
+.seg button { height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.10); }
+
+/* Timers */
+.tm { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px 14px; border-radius: 18px; background: var(--sub); flex-shrink: 0; }
+.tm.done { background: var(--orangeTint); }
+.tm .lbl { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm.done .lbl, .tm.done .big { color: var(--orange); }
+.big { font-size: clamp(22px, 2.3vw, 26px); font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rb { width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; border: 0; background: var(--accent); color: #FFF; display: flex; align-items: center; justify-content: center; padding: 0; }
+.rb.ghost { background: transparent; color: var(--muted); }
+.rb.plain { background: var(--card); color: var(--text); }
+.rb.warn { background: var(--orangeSolid); }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar > div { height: 100%; border-radius: 3px; background: var(--accent); transition: width 1s linear; }
+.tm.paused .bar > div { background: var(--mutedBar); }
+.tm.done .bar > div { background: var(--orangeSolid); }
+.chip { height: 44px; padding: 0 11px; border-radius: 22px; border: 1px solid var(--line); background: transparent; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.al { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; background: var(--sub); flex-shrink: 0; }
+.al.off .big { color: var(--muted); }
+.sw { position: relative; width: 56px; height: 44px; flex-shrink: 0; border: 0; background: transparent; padding: 0; }
+.sw::before { content: ""; position: absolute; left: 2px; top: 6px; width: 52px; height: 32px; border-radius: 16px; background: var(--track); transition: background .2s; }
+.sw::after { content: ""; position: absolute; top: 9px; left: 5px; width: 26px; height: 26px; border-radius: 13px; background: #FFF; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .2s; }
+.sw[aria-checked="true"]::before { background: var(--green); }
+.sw[aria-checked="true"]::after { left: 26px; }
+.tin { height: 44px; border-radius: 14px; border: 1px solid var(--line); background: var(--sub); padding: 0 12px; }
+
+/* Agenda */
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; flex-shrink: 0; }
+.days button { height: clamp(52px, 5.2vw, 62px); border-radius: 16px; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; }
+.days span { font-size: 12px; font-weight: 500; }
+.days b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.days i { width: 5px; height: 5px; border-radius: 3px; background: transparent; }
+.days .today { color: var(--accentText); }
+.days .has i { background: var(--ring); }
+.days [aria-pressed="true"] { background: var(--accent); color: #FFF; }
+.days [aria-pressed="true"] i { background: #FFF; }
+.ev { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--sub); flex-shrink: 0; }
+.ev.next { background: var(--accentTint); }
+.ev.past { opacity: .45; }
+.ev .t { width: 52px; flex-shrink: 0; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ev .t.ad { font-size: 12px; line-height: 1.15; }
+.ev .tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.ev .ti { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 12px; background: var(--accent); color: #FFF; white-space: nowrap; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; flex-shrink: 0; font-size: 13px; color: var(--muted); }
+.legend span { display: flex; align-items: center; gap: 6px; }
+
+/* Lists */
+.it { display: flex; align-items: center; gap: 6px; min-height: 50px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.ck { width: 44px; height: 44px; flex-shrink: 0; border: 0; background: transparent; padding: 0; margin-left: -8px; display: flex; align-items: center; justify-content: center; }
+.ck span { width: 26px; height: 26px; border-radius: 13px; border: 2px solid var(--ring); color: #FFF; display: flex; align-items: center; justify-content: center; transition: background .2s; }
+.shopl .ck span { border-radius: 8px; }
+.it.done .ck span { background: var(--green); border-color: var(--green); }
+.shopl .it.done .ck span { background: var(--violet); border-color: var(--violet); }
+.it .tx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding: 4px 0; }
+.it .ti { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.it.done .ti { color: var(--muted); text-decoration: line-through; }
+.it .mt { font-size: 12px; font-weight: 500; color: var(--muted); }
+.it .mt.late { color: var(--accentText); }
+.it.pending { opacity: .6; }
+.add { display: flex; gap: 8px; flex-shrink: 0; padding-top: 6px; }
+.add input { flex: 1 1 auto; min-width: 0; height: 44px; border-radius: 14px; border: 1px solid var(--line); background: var(--sub); padding: 0 14px; font-size: 15px; outline: none; }
+.add button { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 0; color: #FFF; display: flex; align-items: center; justify-content: center; padding: 0; }
+
+/* Decoraciones */
+.deco { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; display: none; }
+[data-theme="navidad"] body.anim .deco.snow, [data-theme="navidad"] body.anim .deco.garland { display: block; }
+[data-theme="verano"] .deco.waves { display: block; }
+.garland { height: 30px; bottom: auto; z-index: 3; }
+body.amb .deco { z-index: 45; }
+.garland svg { position: absolute; top: 0; left: 0; width: 100%; height: 30px; }
+.garland b { position: absolute; top: 14px; width: 8px; height: 11px; margin-left: -4px; border-radius: 4px 4px 5px 5px; background: currentColor; animation: twinkle 1.8s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: .35; box-shadow: none; } to { opacity: 1; box-shadow: 0 0 10px 2px currentColor; } }
+.snow i { position: absolute; top: -30px; color: #FFF; animation: fall linear infinite; }
+@keyframes fall { to { transform: translateY(calc(100vh + 60px)) rotate(120deg); } }
+.waves svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 160px; }
+
+/* Overlays */
+.scrim { position: fixed; inset: 0; z-index: 50; background: var(--scrim); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.sheet { position: relative; width: min(680px, 100%); max-height: calc(100dvh - 40px); overflow: auto; background: var(--sheet); color: var(--text); border-radius: 32px; padding: clamp(20px, 2.6vw, 32px); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.3); }
+.sheet.wide { width: min(880px, 100%); }
+.sheet h3 { margin: 0; font-family: var(--display); font-size: 24px; font-weight: var(--headW); letter-spacing: -.02em; }
+.x { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: var(--sub); display: flex; align-items: center; justify-content: center; padding: 0; }
+.orb { width: clamp(84px, 10vw, 116px); height: clamp(84px, 10vw, 116px); border-radius: 50%; background: var(--orbOuter); display: flex; align-items: center; justify-content: center; align-self: center; }
+.orb > div { width: 74%; height: 74%; border-radius: 50%; background: var(--orbMid); display: flex; align-items: center; justify-content: center; }
+.orb > div > div { width: 66%; height: 66%; border-radius: 50%; background: var(--accent); color: #FFF; display: flex; align-items: center; justify-content: center; }
+.orb.live { animation: pulse 1.4s ease-in-out infinite; }
+.orb.ok > div > div { background: var(--green); }
+@keyframes pulse { 50% { transform: scale(1.08); } }
+.vt { text-align: center; display: flex; flex-direction: column; gap: 6px; }
+.vt .h { font-family: var(--display); font-size: 24px; font-weight: var(--headW); letter-spacing: -.02em; }
+.vt .r { font-size: 20px; font-weight: 600; }
+.exs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.exs button { min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: var(--sub); font-size: 14px; font-weight: 500; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label, .lab { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.field input, .field select { height: 48px; border-radius: 14px; border: 1px solid var(--line); background: var(--sub); padding: 0 14px; font-size: 15px; outline: none; width: 100%; }
+.btn { height: 48px; padding: 0 18px; border-radius: 14px; border: 0; background: var(--accent); color: #FFF; font-weight: 600; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.sec { background: var(--sub); color: var(--text); border: 1px solid var(--line); }
+.themes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 699px) { .themes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.themes button { display: flex; flex-direction: column; gap: 8px; padding: 8px 8px 10px; border-radius: 20px; border: 0; background: var(--sub); text-align: left; box-shadow: 0 0 0 1px var(--line); }
+.themes button[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--accent); }
+.sw-prev { position: relative; height: 76px; border-radius: 14px; overflow: hidden; }
+.sw-prev span { position: absolute; border-radius: 8px; }
+.themes b { font-size: 15px; padding: 0 4px; }
+.themes small { font-size: 12px; color: var(--muted); line-height: 1.3; padding: 0 4px; }
+.setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line); }
+.status { font-size: 14px; font-weight: 500; }
+.status.ok { color: var(--greenText); }
+.status.err { color: var(--accentText); }
+
+.toast { position: fixed; left: 50%; bottom: var(--pad); transform: translateX(-50%); z-index: 70; max-width: 80%; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 24px; background: var(--toastBg); color: var(--toastFg); box-shadow: 0 14px 40px rgba(0,0,0,.28); font-size: 15px; font-weight: 500; }
+
+.ambient { position: fixed; inset: 0; z-index: 40; background: var(--bg); background-attachment: fixed; color: var(--text); border: 0; padding: clamp(32px, 4.5vw, 56px); display: flex; flex-direction: column; justify-content: space-between; text-align: left; width: 100%; }
+.ambient .ac { font-family: var(--display); font-weight: var(--clockW); font-size: clamp(150px, 20vw, 260px); line-height: .9; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.ambient .top2 { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.ambient .ad { font-family: var(--display); font-size: clamp(22px, 2.4vw, 30px); font-weight: var(--headW); }
+.ambient .bot { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.ambient .nx { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 22px; background: var(--card); border: var(--cardBorder); }
+.ambient .cd { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: 22px; background: var(--accent); color: #FFF; }
+.ambient .cd b { font-family: var(--display); font-size: 30px; line-height: 1; }
+.ring { position: fixed; inset: 0; z-index: 80; background: var(--accent); color: #FFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; padding: 24px; }
+.ring .rt { font-family: var(--display); font-size: clamp(64px, 10vw, 140px); font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+.ring .rl { font-size: 24px; font-weight: 600; }
+.ring .row { gap: 12px; }
+.ring button { height: 64px; padding: 0 32px; border-radius: 32px; border: 0; font-size: 18px; font-weight: 700; background: #FFF; color: #1C1C1E; }
+.ring button.sec { background: rgba(255,255,255,.2); color: #FFF; }
+.dim { position: fixed; inset: 0; z-index: 90; background: #000; opacity: 0; pointer-events: none; transition: opacity 2s; }
+.dim.on { opacity: .45; }
+.banner { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 16px; background: var(--accentTint); color: var(--text); font-size: 14px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="deco snow" id="snow" aria-hidden="true"></div>
+<div class="deco garland" id="garland" aria-hidden="true"></div>
+<div class="deco waves" aria-hidden="true">
+  <svg viewBox="0 0 1000 160" preserveAspectRatio="none"><path d="M0 90 C 150 50 300 130 500 90 S 850 50 1000 90 V160 H0z" fill="rgba(14,116,144,.07)"/><path d="M0 120 C 200 90 350 150 550 120 S 850 95 1000 120 V160 H0z" fill="rgba(194,65,12,.06)"/></svg>
+</div>
+
+<div id="app">
+  <header class="top">
+    <div class="head-l">
+      <span class="headline" id="headline">&nbsp;</span>
+      <span class="date" id="date">&nbsp;</span>
+    </div>
+    <div class="head-r">
+      <div class="pill alarm" id="alarm-pill"></div>
+      <button class="ibtn" data-act="themes" aria-label="Elegir tema" id="b-themes"></button>
+      <button class="ibtn" data-act="settings" aria-label="Ajustes" id="b-settings"></button>
+      <button class="ibtn" data-act="ambient" aria-label="Modo ambiente" id="b-ambient"></button>
+      <button class="talk" data-act="voice" id="b-talk"><span id="mic-ic"></span><span>Hablar</span></button>
+    </div>
+  </header>
+
+  <div id="banner-slot"></div>
+
+  <main class="grid" id="grid" data-tab="agenda">
+    <div class="tabs" role="tablist" aria-label="Paneles" id="tabs"></div>
+
+    <section class="card" id="c-clock" aria-label="Hora y clima">
+      <div class="clock" id="clock">--:--</div>
+      <div class="wx-now">
+        <div class="wx-ic" id="wx-ic"></div>
+        <div style="min-width:0">
+          <div class="temp" id="wx-temp">--°</div>
+          <div class="muted" style="font-size:14px" id="wx-desc">Cargando clima…</div>
+        </div>
+      </div>
+      <div class="fc" id="wx-fc"></div>
+    </section>
+
+    <section class="card" id="c-timers" aria-label="Timers y alarmas">
+      <div class="ch">
+        <div class="seg">
+          <button data-act="ta" data-arg="timers" id="seg-t"><span id="ic-timer"></span>Timers</button>
+          <button data-act="ta" data-arg="alarms" id="seg-a"><span id="ic-alarm"></span>Alarmas</button>
+        </div>
+        <span class="muted small" id="ta-sum"></span>
+      </div>
+      <div class="list gap8" id="ta-list"></div>
+      <div class="row wrap" style="gap:8px;flex-shrink:0" id="ta-foot"></div>
+    </section>
+
+    <section class="card" id="c-agenda" aria-label="Agenda">
+      <div class="ch">
+        <div class="ch-l"><div class="ico a" id="ic-cal"></div><h2>Agenda</h2></div>
+        <span class="muted small" id="day-label">Hoy</span>
+      </div>
+      <div class="days" id="days"></div>
+      <div class="list gap8" id="events"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="card" id="c-tasks" aria-label="Tareas y recordatorios">
+      <div class="ch">
+        <div class="ch-l"><div class="ico g" id="ic-tasks"></div><h2>Tareas</h2><span class="muted small" id="tasks-n"></span></div>
+        <button class="link" data-act="clear" data-arg="tasks" id="tasks-clear" hidden>Limpiar</button>
+      </div>
+      <div class="list" id="tasks"></div>
+      <div class="add">
+        <label for="task-in" class="sr">Nueva tarea</label>
+        <input id="task-in" type="text" placeholder="Nueva tarea…" enterkeyhint="done" autocomplete="off">
+        <button data-act="add" data-arg="tasks" aria-label="Agregar tarea" style="background:var(--green)" id="add-t"></button>
+      </div>
+    </section>
+
+    <section class="card" id="c-shop" aria-label="Lista de compras">
+      <div class="ch">
+        <div class="ch-l"><div class="ico v" id="ic-shop"></div><h2>Compras</h2><span class="muted small" id="shop-n"></span></div>
+        <button class="link" data-act="clear" data-arg="shop" id="shop-clear" hidden>Limpiar</button>
+      </div>
+      <div class="list shopl" id="shop"></div>
+      <div class="add">
+        <label for="shop-in" class="sr">Agregar a compras</label>
+        <input id="shop-in" type="text" placeholder="Agregar a compras…" enterkeyhint="done" autocomplete="off">
+        <button data-act="add" data-arg="shop" aria-label="Agregar a compras" style="background:var(--violet)" id="add-s"></button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="overlay"></div>
+<div id="toast-slot"></div>
+<div class="dim" id="dim"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Casa · Dashboard familiar
+   - Datos: Google Calendar + Google Tasks vía Apps Script (Ajustes → Conexión)
+   - Clima: Open-Meteo (sin clave)
+   - Timers, alarmas, temas y ajustes: se guardan en este dispositivo
+   ===================================================================== */
+
+const VERSION = '1.0.0';
+
+/* ---------------------------- Utilidades ---------------------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const hm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const cap = s => { s = String(s || '').trim(); return s.charAt(0).toUpperCase() + s.slice(1); };
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('casa.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('casa.' + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+};
+const DS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DL = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const MO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/* ---------------------------- Íconos ---------------------------- */
+const P = {
+  mic: 'M9 3h6v11H9zM5 11a7 7 0 0 0 14 0M12 18v3',
+  palette: 'M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.7 4.7 0 0 0 21 9.7C21 5.9 17 3 12 3zM7.5 11.5h.01M9.5 7.5h.01M14.5 7.5h.01M17 11h.01',
+  gear: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+  frame: 'M3 4h18v14H3zM3 14l5-4 4 3 3-2 6 4M9 21h6',
+  timer: 'M12 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 9v4l2.5 2M9 2h6',
+  alarm: 'M12 5.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15zM12 9.5V13l2 1.5M4 4.5 6.5 2.5M20 4.5 17.5 2.5',
+  cal: 'M6 5h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM3 10h18M8 3v4M16 3v4',
+  tasks: 'M10 6h10M10 12h10M10 18h10M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17',
+  cart: 'M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6M10 20.5h.01M17 20.5h.01',
+  plus: 'M12 5v14M5 12h14',
+  check: 'M5 12.5l4.5 4.5L19 7',
+  x: 'M6 6l12 12M18 6 6 18',
+  play: 'M8 5.5v13l10-6.5z',
+  pause: 'M9 5v14M15 5v14',
+  reset: 'M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6',
+  send: 'M12 19V5M6 11l6-6 6 6',
+  tree: 'M12 2l5 7h-3l4 6h-4l3 5H7l3-5H6l4-6H7zM12 20v2',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
+  partly: 'M8 2.5V4M3 8H1.5M4.5 4.5l1 1M11.8 7.2A4 4 0 0 0 4.6 9.6M9 20h8a3.5 3.5 0 0 0 .4-6.98A5 5 0 0 0 8 13.2 3.4 3.4 0 0 0 9 20z',
+  cloud: 'M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 11 3.5 3.5 0 0 0 7 18z',
+  rain: 'M7 15h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 8 3.5 3.5 0 0 0 7 15zM9 18l-1 3M13 18l-1 3M17 18l-1 3',
+  storm: 'M7 15h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 8 3.5 3.5 0 0 0 7 15zM12 15l-2 4h4l-2 4',
+  snow: 'M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9.5 3.5 12 6l2.5-2.5M9.5 20.5 12 18l2.5 2.5',
+  fog: 'M4 10h16M4 14h16M6 18h12M7 6h10'
+};
+const ic = (name, size, sw, fill) => '<svg width="' + (size || 20) + '" height="' + (size || 20) + '" viewBox="0 0 24 24" fill="' + (fill || 'none') + '" stroke="currentColor" stroke-width="' + (sw || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + P[name] + '"/></svg>';
+
+/* ---------------------------- Temas ---------------------------- */
+const THEMES = {
+  clasico:   { name: 'Clásico',       desc: 'Claro y limpio',                     bg: '#F2F1EE', card: '#FFFFFF', accent: '#2F6FEB', meta: '#F2F1EE' },
+  noche:     { name: 'Noche',         desc: 'Oscuro, ideal de noche',             bg: '#0E0F11', card: '#1A1B1F', accent: '#3B6FE0', meta: '#0E0F11' },
+  navidad:   { name: 'Navidad',       desc: 'Guirnalda, nieve y cuenta regresiva', bg: '#0F241B', card: '#173326', accent: '#C8312C', meta: '#0F241B', festive: true },
+  verano:    { name: 'Verano',        desc: 'Cálido y luminoso',                  bg: '#FFF4E6', card: '#FFFFFF', accent: '#C2410C', meta: '#FFF4E6' },
+  asistente: { name: 'Smart display', desc: 'Fondo profundo, letras grandes',     bg: 'linear-gradient(160deg,#0A1622,#0B2A3A)', card: '#112334', accent: '#0B7FB8', meta: '#0A1622' },
+  material:  { name: 'Material',      desc: 'Tonos suaves, formas redondas',      bg: '#FBF9F2', card: '#ECE8DC', accent: '#4A6440', meta: '#FBF9F2' },
+  cristal:   { name: 'Cristal',       desc: 'Translúcido · más pesado para tablets viejas', bg: 'linear-gradient(135deg,#FFD3B6,#B9D7FF 55%,#D8C8FF)', card: 'rgba(255,255,255,.6)', accent: '#0066D6', meta: '#EEF0F6' }
+};
+function resolveTheme(sel, d) {
+  if (sel && sel !== 'auto' && THEMES[sel]) return sel;
+  const m = d.getMonth(), day = d.getDate(), h = d.getHours();
+  if (m === 11 || (m === 0 && day <= 6)) return 'navidad';
+  if (m === 0 || m === 1) return 'verano';
+  return (h >= 21 || h < 6) ? 'noche' : 'clasico';
+}
+
+/* ---------------------------- Estado ---------------------------- */
+const DEFAULTS = {
+  apiUrl: '', token: '', theme: 'auto', anim: true, ambientMin: 5, nightDim: true, nightFrom: 22, nightTo: 6,
+  speak: true, lang: 'es-PY', lat: null, lon: null, place: '', days: 7
+};
+const S = {
+  settings: Object.assign({}, DEFAULTS, LS.get('settings', {})),
+  data: { events: [], tasks: [], shop: [], calendars: [] },
+  weather: null,
+  timers: LS.get('timers', []),
+  alarms: LS.get('alarms', [{ id: 'a1', time: '06:30', label: 'Despertador', days: [1, 2, 3, 4, 5], on: true }]),
+  ui: { tab: 'agenda', ta: 'timers', day: 0, sheet: null, ambient: false, ring: null },
+  sync: { last: 0, ok: null, error: '', busy: false, pending: 0 },
+  lastInput: Date.now(),
+  themeId: 'clasico'
+};
+const isDemo = () => !S.settings.apiUrl || !S.settings.token;
+const saveSettings = () => LS.set('settings', S.settings);
+const saveTimers = () => LS.set('timers', S.timers);
+const saveAlarms = () => LS.set('alarms', S.alarms);
+
+/* ---------------------------- Datos demo ---------------------------- */
+function demoData() {
+  const t = new Date();
+  const at = (dd, h, m) => new Date(t.getFullYear(), t.getMonth(), t.getDate() + dd, h, m).toISOString();
+  const cal = [{ name: 'Familia', color: '#2E9E5B' }, { name: 'Sebas', color: '#2F6FEB' }, { name: 'Pareja', color: '#E8833A' }];
+  const ev = (dd, h, m, title, c) => ({ id: 'd' + dd + h + m, title: title, allDay: false, start: at(dd, h, m), end: at(dd, h + 1, m), calendar: cal[c].name, color: cal[c].color });
+  return {
+    calendars: cal,
+    events: [
+      ev(0, 9, 0, 'Caminata', 2), ev(0, 13, 0, 'Almuerzo familiar', 0), ev(0, 17, 30, 'Supermercado', 2), ev(0, 20, 0, 'Preparar viandas', 1),
+      ev(1, 7, 0, 'Gimnasio', 1), ev(1, 9, 0, 'Daily del equipo', 1), ev(1, 18, 30, 'Clase de yoga', 2),
+      ev(2, 19, 0, 'Pagar servicios', 0), ev(4, 21, 0, 'Cena con amigos', 0),
+      { id: 'dall', title: 'Armar el arbolito', allDay: true, date: ymd(addDays(t, 5)), endDate: ymd(addDays(t, 6)), calendar: 'Familia', color: '#2E9E5B' }
+    ],
+    tasks: [
+      { id: 't1', listId: 'tasks', title: 'Sacar la basura', done: false, due: ymd(t) },
+      { id: 't2', listId: 'tasks', title: 'Llamar al técnico del aire', done: false, due: ymd(addDays(t, 1)) },
+      { id: 't3', listId: 'tasks', title: 'Regar las plantas', done: false, due: null },
+      { id: 't4', listId: 'tasks', title: 'Pagar internet', done: true, due: null }
+    ],
+    shop: [
+      { id: 's1', listId: 'shop', title: 'Leche', done: false }, { id: 's2', listId: 'shop', title: 'Huevos', done: false },
+      { id: 's3', listId: 'shop', title: 'Pan', done: false }, { id: 's4', listId: 'shop', title: 'Tomates', done: false },
+      { id: 's5', listId: 'shop', title: 'Detergente', done: true }
+    ]
+  };
+}
+
+/* ---------------------------- API ---------------------------- */
+async function apiGet(action, extra) {
+  const s = S.settings;
+  const url = s.apiUrl + (s.apiUrl.indexOf('?') >= 0 ? '&' : '?') + 'action=' + action + '&token=' + encodeURIComponent(s.token) + (extra || '');
+  const r = await fetch(url, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+async function apiPost(action, payload) {
+  const s = S.settings;
+  const r = await fetch(s.apiUrl, { method: 'POST', redirect: 'follow', body: JSON.stringify(Object.assign({ token: s.token, action: action }, payload || {})) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'error');
+  return j;
+}
+
+async function sync() {
+  if (isDemo()) { renderHeader(); return; }
+  if (S.sync.busy || S.sync.pending > 0) { S.sync.again = true; return; }
+  S.sync.busy = true; S.sync.again = false;
+  const gen = S.sync.gen || 0;
+  try {
+    const j = await apiGet('summary', '&days=' + (S.settings.days || 7));
+    if (!j.ok) throw new Error(j.error === 'unauthorized' ? 'clave incorrecta' : (j.error || 'error'));
+    // Solo aplicar si no hubo cambios locales mientras se descargaba
+    if (S.sync.pending === 0 && (S.sync.gen || 0) === gen) {
+      S.data = j.data;
+      LS.set('cache', j.data);
+    } else {
+      S.sync.again = true;
+    }
+    S.sync.ok = true; S.sync.error = ''; S.sync.last = Date.now();
+  } catch (e) {
+    S.sync.ok = false; S.sync.error = e.message || String(e);
+  } finally {
+    S.sync.busy = false;
+  }
+  renderAgenda(); renderLists(); renderHeader(); renderTabs();
+  if (S.sync.again && S.sync.pending === 0) { S.sync.again = false; setTimeout(sync, 300); }
+}
+
+async function mutate(fn) {
+  S.sync.pending++;
+  S.sync.gen = (S.sync.gen || 0) + 1;
+  renderLists(); renderTabs();
+  try {
+    if (!isDemo()) await fn();
+  } catch (e) {
+    toast('No se pudo guardar: ' + (e.message || e));
+  } finally {
+    S.sync.pending--;
+    if (isDemo()) {
+      S.data.tasks.forEach(x => { delete x.pending; });
+      S.data.shop.forEach(x => { delete x.pending; });
+      renderLists(); renderTabs();
+    } else if (S.sync.pending === 0) {
+      sync();
+    }
+  }
+}
+
+function listOf(kind) { return kind === 'shop' ? S.data.shop : S.data.tasks; }
+
+function addItem(kind, title, due) {
+  title = cap(title);
+  if (!title) return;
+  const arr = listOf(kind);
+  if (kind === 'shop') {
+    const ex = arr.find(x => x.title.toLowerCase() === title.toLowerCase());
+    if (ex && !ex.done) return;
+    if (ex && ex.done) { toggleItem(kind, ex.id); return; }
+  }
+  const item = { id: 'tmp' + Date.now() + Math.random(), listId: kind, title: title, done: false, due: due || null, pending: true };
+  arr.unshift(item);
+  mutate(() => apiPost(kind === 'shop' ? 'addShop' : 'addTask', { title: title, due: due || null }));
+}
+function toggleItem(kind, id) {
+  const it = listOf(kind).find(x => x.id === id);
+  if (!it || String(id).indexOf('tmp') === 0) return;
+  it.done = !it.done;
+  mutate(() => apiPost('setDone', { listId: it.listId || kind, id: it.id, done: it.done }));
+}
+function clearDone(kind) {
+  const arr = listOf(kind);
+  const any = arr.some(x => x.done);
+  if (!any) return;
+  if (kind === 'shop') S.data.shop = arr.filter(x => !x.done); else S.data.tasks = arr.filter(x => !x.done);
+  const listId = kind === 'shop' ? (S.data.shopListId || 'shop') : (S.data.taskListId || 'tasks');
+  mutate(() => apiPost('clearDone', { listId: listId }));
+}
+
+/* ---------------------------- Clima (Open-Meteo) ---------------------------- */
+const WMO = c => {
+  if (c === 0) return ['Despejado', 'sun'];
+  if (c === 1) return ['Mayormente despejado', 'partly'];
+  if (c === 2) return ['Parcialmente nublado', 'partly'];
+  if (c === 3) return ['Nublado', 'cloud'];
+  if (c === 45 || c === 48) return ['Niebla', 'fog'];
+  if (c >= 51 && c <= 57) return ['Llovizna', 'rain'];
+  if (c >= 61 && c <= 67) return ['Lluvia', 'rain'];
+  if (c >= 71 && c <= 77) return ['Nieve', 'snow'];
+  if (c >= 80 && c <= 82) return ['Chaparrones', 'rain'];
+  if (c === 85 || c === 86) return ['Nieve', 'snow'];
+  if (c >= 95) return ['Tormenta', 'storm'];
+  return ['—', 'cloud'];
+};
+async function loadWeather() {
+  const s = S.settings;
+  if (s.lat == null || s.lon == null) {
+    if (isDemo()) {
+      S.weather = { demo: true, temp: 32, code: 2, isDay: 1, max: 34, min: 23, daily: [{ c: 0, hi: 34, lo: 23 }, { c: 2, hi: 31, lo: 22 }, { c: 63, hi: 27, lo: 20 }, { c: 0, hi: 33, lo: 22 }, { c: 1, hi: 32, lo: 22 }] };
+    } else {
+      S.weather = null;
+    }
+    renderWeather();
+    return;
+  }
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + s.lat + '&longitude=' + s.lon +
+      '&current=temperature_2m,weather_code,is_day,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5';
+    const r = await fetch(url, { cache: 'no-store' });
+    const j = await r.json();
+    S.weather = {
+      temp: Math.round(j.current.temperature_2m), feels: Math.round(j.current.apparent_temperature), code: j.current.weather_code, isDay: j.current.is_day,
+      max: Math.round(j.daily.temperature_2m_max[0]), min: Math.round(j.daily.temperature_2m_min[0]),
+      rain: j.daily.precipitation_probability_max,
+      daily: j.daily.weather_code.map((c, i) => ({ c: c, hi: Math.round(j.daily.temperature_2m_max[i]), lo: Math.round(j.daily.temperature_2m_min[i]), p: j.daily.precipitation_probability_max[i] })).slice(1)
+    };
+    LS.set('weather', S.weather);
+  } catch (e) {
+    S.weather = S.weather || LS.get('weather', null);
+  }
+  renderWeather();
+}
+function weatherIcon(code, isDay) {
+  const k = WMO(code)[1];
+  if (!isDay && (k === 'sun' || k === 'partly')) return 'moon';
+  return k;
+}
+
+/* ---------------------------- Render: header & reloj ---------------------------- */
+function xmasInfo(d) {
+  const today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (d.getMonth() === 0 && d.getDate() <= 6) return { days: 0, label: '¡Feliz año nuevo!' };
+  let target = new Date(d.getFullYear(), 11, 25);
+  if (today > target) return { days: 0, label: '¡Felices fiestas!' };
+  const days = Math.round((target - today) / 86400000);
+  return { days: days, label: days === 0 ? '¡Feliz Navidad!' : days === 1 ? 'día para Navidad' : 'días para Navidad' };
+}
+function syncText() {
+  if (isDemo()) return 'Modo demo';
+  if (S.sync.ok === false) return 'Sin conexión';
+  if (!S.sync.last) return 'Conectando…';
+  return 'Actualizado ' + hm(new Date(S.sync.last));
+}
+function renderHeader() {
+  const d = new Date();
+  const h = d.getHours();
+  const greet = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+  let line = greet;
+  if (S.themeId === 'navidad') {
+    const x = xmasInfo(d);
+    line = '¡Felices fiestas! · ' + (x.days > 0 ? 'Faltan ' + x.days + ' días para Navidad' : x.label);
+  }
+  $('headline').textContent = line + ' · ' + syncText();
+  $('date').textContent = DL[d.getDay()] + ', ' + d.getDate() + ' de ' + MO[d.getMonth()];
+  const na = nextAlarm();
+  $('alarm-pill').innerHTML = ic('alarm', 18) + '<span>' + (na ? 'Alarma ' + na.time : 'Sin alarmas') + '</span>';
+  renderBanner();
+}
+function renderBanner() {
+  const slot = $('banner-slot');
+  if (isDemo()) {
+    slot.innerHTML = '<div class="banner"><span>Modo demo: datos de ejemplo. Conectá tu Google Calendar y Tasks en Ajustes.</span><button class="btn" style="height:40px" data-act="settings">Conectar</button></div>';
+  } else if (S.sync.ok === false) {
+    slot.innerHTML = '<div class="banner"><span>No se pudo actualizar (' + esc(S.sync.error) + '). Se muestran los últimos datos guardados.</span><button class="btn sec" style="height:40px" data-act="resync">Reintentar</button></div>';
+  } else {
+    slot.innerHTML = '';
+  }
+}
+function renderClock() {
+  const d = new Date();
+  $('clock').textContent = hm(d);
+  if (S.ui.ambient) {
+    const a = $('amb-clock');
+    if (a) a.textContent = hm(d);
+  }
+}
+function renderWeather() {
+  const w = S.weather;
+  if (!w) {
+    $('wx-ic').innerHTML = ic('cloud', 30, 1.8);
+    $('wx-temp').textContent = '--°';
+    $('wx-desc').innerHTML = 'Configurá tu ciudad en <button class="link" style="height:auto;padding:0" data-act="settings">Ajustes</button>';
+    $('wx-fc').innerHTML = '';
+    return;
+  }
+  $('wx-ic').innerHTML = ic(weatherIcon(w.code, w.isDay), 30, 1.8);
+  $('wx-temp').textContent = w.temp + '°';
+  $('wx-desc').textContent = WMO(w.code)[0] + ' · Máx ' + w.max + '° · Mín ' + w.min + '°';
+  const t = new Date();
+  $('wx-fc').innerHTML = (w.daily || []).slice(0, 4).map((x, i) => {
+    const k = WMO(x.c)[1];
+    const color = k === 'sun' ? 'var(--sunFg)' : (k === 'rain' || k === 'storm') ? 'var(--rain)' : 'var(--muted)';
+    return '<div><small>' + (i === 0 ? 'Mañana' : DS[addDays(t, i + 1).getDay()]) + '</small><span style="color:' + color + '">' + ic(k, 22) + '</span><span>' + x.hi + '° <i>' + x.lo + '°</i></span></div>';
+  }).join('');
+}
+
+/* ---------------------------- Render: agenda ---------------------------- */
+function eventsOn(dateKey) {
+  return (S.data.events || []).filter(e => {
+    if (e.allDay) return e.date <= dateKey && dateKey < (e.endDate || e.date + 'z');
+    return ymd(new Date(e.start)) === dateKey;
+  });
+}
+function renderAgenda() {
+  const t = new Date();
+  const nowMs = t.getTime();
+  let days = '';
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(t, i);
+    const has = eventsOn(ymd(d)).length > 0;
+    days += '<button data-act="day" data-arg="' + i + '" aria-pressed="' + (S.ui.day === i) + '" aria-label="' + DL[d.getDay()] + ' ' + d.getDate() + '" class="' + (i === 0 ? 'today ' : '') + (has ? 'has' : '') + '"><span>' + (i === 0 ? 'Hoy' : DS[d.getDay()]) + '</span><b>' + d.getDate() + '</b><i></i></button>';
+  }
+  $('days').innerHTML = days;
+  const sd = addDays(t, S.ui.day);
+  $('day-label').textContent = S.ui.day === 0 ? 'Hoy' : S.ui.day === 1 ? 'Mañana' : DL[sd.getDay()] + ' ' + sd.getDate();
+
+  const list = eventsOn(ymd(sd));
+  let nextGiven = false;
+  const html = list.map(e => {
+    let cls = '', badge = '', tcell;
+    if (e.allDay) {
+      tcell = '<span class="t ad">Todo el día</span>';
+    } else {
+      const st = new Date(e.start), en = new Date(e.end);
+      tcell = '<span class="t">' + hm(st) + '</span>';
+      if (S.ui.day === 0) {
+        if (en.getTime() <= nowMs) cls = 'past';
+        else if (st.getTime() <= nowMs) { cls = 'next'; badge = 'Ahora'; nextGiven = true; }
+        else if (!nextGiven) {
+          const diff = Math.round((st.getTime() - nowMs) / 60000);
+          badge = diff < 60 ? 'en ' + diff + ' min' : 'en ' + Math.round(diff / 60) + ' h';
+          cls = 'next'; nextGiven = true;
+        }
+      }
+    }
+    return '<div class="ev ' + cls + '">' + tcell + '<span class="dot" style="width:10px;height:10px;border-radius:5px;background:' + esc(e.color || 'var(--accent)') + '"></span>' +
+      '<div class="tx"><span class="ti">' + esc(e.title) + '</span><span class="muted small">' + esc(e.calendar || '') + (e.location ? ' · ' + esc(e.location) : '') + '</span></div>' +
+      (badge ? '<span class="badge">' + badge + '</span>' : '') + '</div>';
+  }).join('');
+  $('events').innerHTML = html || '<div class="empty"><b>Día libre</b>No hay eventos para este día.</div>';
+  $('legend').innerHTML = (S.data.calendars || []).slice(0, 6).map(c => '<span><span class="dot" style="background:' + esc(c.color) + '"></span>' + esc(c.name) + '</span>').join('');
+}
+
+/* ---------------------------- Render: tareas y compras ---------------------------- */
+function dueLabel(due) {
+  if (!due) return null;
+  const today = ymd(new Date());
+  const tom = ymd(addDays(new Date(), 1));
+  const [y, m, d] = due.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  if (due < today) return { t: 'Vencida · ' + d + '/' + m, late: true };
+  if (due === today) return { t: 'Hoy', late: false };
+  if (due === tom) return { t: 'Mañana', late: false };
+  const diff = Math.round((dt - new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) / 86400000);
+  return { t: diff < 7 ? DL[dt.getDay()] : d + '/' + m, late: false };
+}
+function sortItems(arr) {
+  return arr.slice().sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const da = a.due || '9999', db = b.due || '9999';
+    return da < db ? -1 : da > db ? 1 : 0;
+  });
+}
+function renderList(kind) {
+  const arr = sortItems(listOf(kind));
+  const el = $(kind === 'shop' ? 'shop' : 'tasks');
+  el.innerHTML = arr.map(x => {
+    const dl = kind === 'tasks' ? dueLabel(x.due) : null;
+    return '<div class="it' + (x.done ? ' done' : '') + (x.pending ? ' pending' : '') + '">' +
+      '<button class="ck" data-act="toggle" data-kind="' + kind + '" data-arg="' + esc(x.id) + '" aria-label="' + (x.done ? 'Marcar pendiente: ' : 'Completar: ') + esc(x.title) + '"><span>' + (x.done ? ic('check', 15, 3) : '') + '</span></button>' +
+      '<div class="tx"><span class="ti">' + esc(x.title) + '</span>' + (dl ? '<span class="mt' + (dl.late && !x.done ? ' late' : '') + '">' + dl.t + '</span>' : '') + '</div></div>';
+  }).join('') || '<div class="empty"><b>' + (kind === 'shop' ? 'Nada para comprar' : 'Todo hecho') + '</b>' + (kind === 'shop' ? 'Agregá algo o decí “agregá leche a la lista”.' : 'Agregá una tarea o decí “recordame…”.') + '</div>';
+  const pend = arr.filter(x => !x.done).length;
+  $(kind === 'shop' ? 'shop-n' : 'tasks-n').textContent = kind === 'shop' ? (pend === 1 ? '1 por comprar' : pend + ' por comprar') : (pend === 1 ? '1 pendiente' : pend + ' pendientes');
+  $(kind === 'shop' ? 'shop-clear' : 'tasks-clear').hidden = !arr.some(x => x.done);
+}
+function renderLists() { renderList('tasks'); renderList('shop'); }
+
+function renderTabs() {
+  const t = new Date();
+  const left = eventsOn(ymd(t)).filter(e => e.allDay || new Date(e.end).getTime() > Date.now()).length;
+  const defs = [['agenda', 'Agenda', left], ['tareas', 'Tareas', S.data.tasks.filter(x => !x.done).length], ['compras', 'Compras', S.data.shop.filter(x => !x.done).length]];
+  $('tabs').innerHTML = defs.map(d => '<button role="tab" data-act="tab" data-arg="' + d[0] + '" aria-selected="' + (S.ui.tab === d[0]) + '">' + d[1] + '<span class="n">' + d[2] + '</span></button>').join('');
+  $('grid').dataset.tab = S.ui.tab;
+}
+
+/* ---------------------------- Timers y alarmas ---------------------------- */
+function remaining(t) { return t.st === 'run' ? Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000)) : t.rem; }
+function fmtSecs(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+}
+function addTimer(secs, label) {
+  S.timers.push({ id: 't' + Date.now(), label: label || (Math.round(secs / 60) + ' min'), total: secs, rem: secs, endAt: Date.now() + secs * 1000, st: 'run' });
+  saveTimers(); S.ui.ta = 'timers'; renderTimersCard();
+}
+function timerToggle(id) {
+  const t = S.timers.find(x => x.id === id);
+  if (!t) return;
+  if (t.st === 'run') { t.rem = remaining(t); t.st = 'pause'; }
+  else if (t.st === 'pause') { t.endAt = Date.now() + t.rem * 1000; t.st = 'run'; }
+  else { t.rem = t.total; t.endAt = Date.now() + t.total * 1000; t.st = 'run'; }
+  saveTimers(); renderTimersCard();
+}
+function nextAlarm() {
+  const on = S.alarms.filter(a => a.on).sort((a, b) => a.time < b.time ? -1 : 1);
+  if (!on.length) return null;
+  const now = hm(new Date());
+  return on.find(a => a.time > now) || on[0];
+}
+function daysText(a) {
+  if (!a.days || !a.days.length) return 'Una vez';
+  const k = a.days.slice().sort().join(',');
+  if (k === '1,2,3,4,5') return 'Lun a Vie';
+  if (k === '0,6') return 'Sáb y Dom';
+  if (a.days.length === 7) return 'Todos los días';
+  return a.days.map(x => DS[x]).join(' ');
+}
+function renderTimersCard() {
+  const isT = S.ui.ta === 'timers';
+  $('seg-t').setAttribute('aria-pressed', isT);
+  $('seg-a').setAttribute('aria-pressed', !isT);
+  if (isT) {
+    $('ta-list').innerHTML = S.timers.map(t => {
+      const r = remaining(t);
+      const st = t.st === 'done' ? '¡Listo!' : t.st === 'run' ? 'En curso' : 'En pausa';
+      const icn = t.st === 'done' ? ic('reset', 18, 2.4) : t.st === 'run' ? ic('pause', 18, 2.4) : ic('play', 18, 2, 'currentColor');
+      const lab = (t.st === 'done' ? 'Reiniciar ' : t.st === 'run' ? 'Pausar ' : 'Iniciar ') + t.label;
+      return '<div class="tm ' + (t.st === 'done' ? 'done' : t.st === 'pause' ? 'paused' : '') + '" data-tid="' + t.id + '">' +
+        '<div class="row" style="gap:8px"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column"><span class="lbl">' + esc(t.label) + ' · ' + st + '</span><span class="big" data-disp>' + fmtSecs(r) + '</span></div>' +
+        '<button class="rb ' + (t.st === 'run' ? 'plain' : t.st === 'done' ? 'warn' : '') + '" data-act="ttoggle" data-arg="' + t.id + '" aria-label="' + esc(lab) + '">' + icn + '</button>' +
+        '<button class="rb ghost" data-act="tremove" data-arg="' + t.id + '" aria-label="Quitar ' + esc(t.label) + '">' + ic('x', 18) + '</button></div>' +
+        '<div class="bar"><div data-bar style="width:' + (t.total ? Math.min(100, (t.total - r) / t.total * 100) : 0) + '%"></div></div></div>';
+    }).join('') || '<div class="empty">Sin timers activos. Tocá un tiempo rápido o pedíselo por voz.</div>';
+    $('ta-foot').innerHTML = [1, 5, 10, 15].map(n => '<button class="chip" data-act="preset" data-arg="' + n + '">' + ic('plus', 14, 2.4) + n + ' min</button>').join('');
+    const run = S.timers.filter(t => t.st === 'run').length;
+    $('ta-sum').textContent = run + ' en curso';
+  } else {
+    $('ta-list').innerHTML = S.alarms.slice().sort((a, b) => a.time < b.time ? -1 : 1).map(a =>
+      '<div class="al' + (a.on ? '' : ' off') + '"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column"><span class="big">' + a.time + '</span><span class="muted small">' + esc(a.label) + ' · ' + daysText(a) + '</span></div>' +
+      '<button class="sw" role="switch" aria-checked="' + a.on + '" aria-label="Alarma ' + a.time + '" data-act="atoggle" data-arg="' + a.id + '"></button>' +
+      '<button class="rb ghost" data-act="aremove" data-arg="' + a.id + '" aria-label="Borrar alarma ' + a.time + '">' + ic('x', 18) + '</button></div>'
+    ).join('') || '<div class="empty">Sin alarmas.</div>';
+    $('ta-foot').innerHTML = '<label for="al-time" class="sr">Hora de la alarma</label><input class="tin" type="time" id="al-time" value="07:00">' +
+      '<select class="tin" id="al-days" aria-label="Repetir"><option value="once">Una vez</option><option value="wk">Lun a Vie</option><option value="all">Todos los días</option><option value="we">Sáb y Dom</option></select>' +
+      '<button class="chip" data-act="aadd">' + ic('plus', 14, 2.4) + 'Agregar</button>';
+    const on = S.alarms.filter(a => a.on).length;
+    $('ta-sum').textContent = on + (on === 1 ? ' activa' : ' activas');
+  }
+}
+function tickTimers() {
+  let changed = false;
+  S.timers.forEach(t => {
+    if (t.st === 'run' && remaining(t) <= 0) {
+      t.st = 'done'; t.rem = 0; changed = true;
+      ring('Timer listo', t.label, null);
+    }
+  });
+  if (changed) { saveTimers(); renderTimersCard(); return; }
+  if (S.ui.ta !== 'timers') return;
+  document.querySelectorAll('[data-tid]').forEach(el => {
+    const t = S.timers.find(x => x.id === el.dataset.tid);
+    if (!t) return;
+    const r = remaining(t);
+    el.querySelector('[data-disp]').textContent = fmtSecs(r);
+    el.querySelector('[data-bar]').style.width = (t.total ? Math.min(100, (t.total - r) / t.total * 100) : 0) + '%';
+  });
+}
+let lastAlarmKey = LS.get('lastAlarmKey', '');
+function checkAlarms() {
+  const d = new Date();
+  const now = hm(d);
+  const key = ymd(d) + ' ' + now;
+  if (key === lastAlarmKey) return;
+  S.alarms.forEach(a => {
+    if (!a.on || a.time !== now) return;
+    if (a.days && a.days.length && a.days.indexOf(d.getDay()) < 0) return;
+    lastAlarmKey = key; LS.set('lastAlarmKey', key);
+    if (!a.days || !a.days.length) { a.on = false; saveAlarms(); }
+    ring(a.time, a.label, a);
+    renderTimersCard(); renderHeader();
+  });
+}
+
+/* ---------------------------- Sonido ---------------------------- */
+let actx = null, beepTimer = null;
+function unlockAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { /* sin audio */ }
+}
+function beep() {
+  if (!actx) return;
+  const t0 = actx.currentTime;
+  [0, 0.22, 0.44].forEach((off, i) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = i === 2 ? 1046 : 880;
+    g.gain.setValueAtTime(0.0001, t0 + off);
+    g.gain.exponentialRampToValueAtTime(0.35, t0 + off + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + off + 0.18);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t0 + off); o.stop(t0 + off + 0.2);
+  });
+}
+function ring(title, label, alarm) {
+  S.ui.ring = { title: title, label: label, alarm: alarm, since: Date.now() };
+  exitAmbient();
+  renderOverlay();
+  clearInterval(beepTimer);
+  beep();
+  beepTimer = setInterval(() => {
+    if (!S.ui.ring || Date.now() - S.ui.ring.since > 5 * 60000) { stopRing(); return; }
+    beep();
+  }, 1300);
+  if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+}
+function stopRing() {
+  clearInterval(beepTimer); beepTimer = null;
+  S.ui.ring = null; renderOverlay();
+}
+
+/* ---------------------------- Voz ---------------------------- */
+// FullScreendy (kiosco en la tablet) expone su propio puente de voz: la WebView de Android no trae speechSynthesis.
+const FSD = window.fullscreendy && typeof window.fullscreendy.textToSpeech === 'function' ? window.fullscreendy : null;
+// La WebView declara webkitSpeechRecognition pero no tiene reconocedor (sin servicios de Google): en el kiosco se escribe el comando.
+const SR = FSD ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
+let rec = null;
+function speak(text) {
+  if (!S.settings.speak) return;
+  if (FSD) { try { FSD.stopSpeech && FSD.stopSpeech(); FSD.textToSpeech(String(text)); } catch (e) { /* sin voz */ } return; }
+  if (!window.speechSynthesis) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'es-ES'; u.rate = 1.02;
+    const v = speechSynthesis.getVoices().find(x => /^es/i.test(x.lang));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) { /* sin voz */ }
+}
+function openVoice() {
+  S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '' };
+  renderOverlay();
+  startListening();
+}
+function startListening() {
+  if (!SR) {
+    S.ui.sheet.phase = 'idle';
+    S.ui.sheet.note = 'Escribí el comando abajo (este dispositivo no tiene reconocimiento de voz).';
+    renderOverlay();
+    return;
+  }
+  try { if (rec) rec.abort(); } catch (e) { /* nada */ }
+  rec = new SR();
+  rec.lang = S.settings.lang || 'es-PY';
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+  let finalText = '';
+  rec.onresult = ev => {
+    let interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const r = ev.results[i];
+      if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+    }
+    const sh = S.ui.sheet;
+    if (sh && sh.kind === 'voice') { sh.heard = (finalText || interim).trim(); const el = $('v-heard'); if (el) el.textContent = sh.heard ? '“' + sh.heard + '”' : ''; }
+  };
+  rec.onerror = ev => {
+    const sh = S.ui.sheet;
+    if (!sh || sh.kind !== 'voice') return;
+    if (ev.error === 'language-not-supported' && rec.lang !== 'es-ES') { S.settings.lang = 'es-ES'; saveSettings(); startListening(); return; }
+    sh.note = ev.error === 'not-allowed' ? 'Permití el micrófono para esta página (candado de la barra de direcciones).' : ev.error === 'no-speech' ? 'No escuché nada. Tocá el micrófono para intentar de nuevo.' : 'Error de voz: ' + ev.error;
+    sh.phase = 'idle'; renderOverlay();
+  };
+  rec.onend = () => {
+    const sh = S.ui.sheet;
+    if (!sh || sh.kind !== 'voice') return;
+    if (finalText.trim()) runCommand(finalText.trim());
+    else if (sh.phase === 'listen') { sh.phase = 'idle'; renderOverlay(); }
+  };
+  try { rec.start(); S.ui.sheet.phase = 'listen'; } catch (e) { S.ui.sheet.phase = 'idle'; }
+}
+async function runCommand(text) {
+  const sh = S.ui.sheet && S.ui.sheet.kind === 'voice' ? S.ui.sheet : (S.ui.sheet = { kind: 'voice' });
+  sh.phase = 'done'; sh.heard = text; sh.reply = '…'; delete sh.note;
+  renderOverlay();
+  let reply;
+  try { reply = await handleCommand(text); } catch (e) { reply = 'Ups, algo falló: ' + (e.message || e); }
+  if (S.ui.sheet && S.ui.sheet.kind === 'voice') { S.ui.sheet.reply = reply; renderOverlay(); }
+  speak(reply);
+  clearTimeout(runCommand._t);
+  runCommand._t = setTimeout(() => { if (S.ui.sheet && S.ui.sheet.kind === 'voice' && S.ui.sheet.phase === 'done') closeSheet(); }, 4500);
+}
+
+const NUMW = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, doce: 12, quince: 15, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50 };
+const WD = { domingo: 0, lunes: 1, martes: 2, 'miércoles': 3, miercoles: 3, jueves: 4, viernes: 5, 'sábado': 6, sabado: 6 };
+function parseDue(str) {
+  let txt = ' ' + str + ' ';
+  let due = null;
+  const t = new Date();
+  if (/\spasado ma[nñ]ana\s/.test(txt)) { due = ymd(addDays(t, 2)); txt = txt.replace(/\spasado ma[nñ]ana\s/, ' '); }
+  else if (/\sma[nñ]ana\s/.test(txt)) { due = ymd(addDays(t, 1)); txt = txt.replace(/\sma[nñ]ana\s/, ' '); }
+  else if (/\shoy\s/.test(txt)) { due = ymd(t); txt = txt.replace(/\shoy\s/, ' '); }
+  const wm = txt.match(/\s(?:el\s)?(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)\s/);
+  if (!due && wm) {
+    const target = WD[wm[1]];
+    let diff = (target - t.getDay() + 7) % 7; if (diff === 0) diff = 7;
+    due = ymd(addDays(t, diff)); txt = txt.replace(wm[0], ' ');
+  }
+  const tm = txt.match(/\s(?:a\s+las?|a\s+la)\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s*(?:hs|horas))?(?:\s+de la (?:tarde|noche|ma[nñ]ana))?/);
+  if (tm) { txt = txt.replace(tm[0], ' '); if (!due) due = ymd(t); }
+  return { text: txt.replace(/\s+/g, ' ').trim(), due: due };
+}
+const joinList = arr => arr.length > 1 ? arr.slice(0, -1).join(', ') + ' y ' + arr[arr.length - 1] : arr[0];
+
+async function handleCommand(raw) {
+  let q = raw.toLowerCase().replace(/[¿?¡!.]/g, ' ').replace(/\s+/g, ' ').trim();
+  const pm = q.match(/^(alexa|ok google|oye google|hey google|google)\s*,?\s*/);
+  if (pm) q = q.slice(pm[0].length);
+  const numRe = '\\b(\\d+|' + Object.keys(NUMW).join('|') + ')';
+  let m;
+
+  // Temas
+  if ((m = q.match(/(?:tema|modo|estilo)\s+(navide[nñ]o|navidad|verano|cl[aá]sico|noche|oscuro|claro|smart display|asistente|material|cristal|autom[aá]tico)/))) {
+    const map = { 'navideño': 'navidad', navideno: 'navidad', navidad: 'navidad', verano: 'verano', 'clásico': 'clasico', clasico: 'clasico', claro: 'clasico', noche: 'noche', oscuro: 'noche', 'smart display': 'asistente', asistente: 'asistente', material: 'material', cristal: 'cristal', 'automático': 'auto', automatico: 'auto' };
+    S.settings.theme = map[m[1]] || 'auto'; saveSettings(); applyTheme();
+    return 'Listo, tema ' + (S.settings.theme === 'auto' ? 'automático' : THEMES[S.settings.theme].name) + '.';
+  }
+  // Modo ambiente
+  if (/(modo ambiente|protector|pantalla de descanso)/.test(q)) { setTimeout(enterAmbient, 1500); return 'Activando modo ambiente.'; }
+  // Timer
+  if (/(timer|temporizador|cron[oó]metro)/.test(q) && (m = q.match(new RegExp(numRe + '\\s*(segundos?|seg|minutos?|min|horas?|hs?)\\b')))) {
+    const n = /\d/.test(m[1]) ? parseInt(m[1], 10) : NUMW[m[1]];
+    const c0 = m[2].charAt(0);
+    const u = c0 === 's' ? 1 : c0 === 'h' ? 3600 : 60;
+    const unit = u === 1 ? 'seg' : u === 60 ? 'min' : (n === 1 ? 'hora' : 'horas');
+    const lm = q.match(/para (?:el |la |los |las )?(.+)$/);
+    addTimer(n * u, lm ? cap(lm[1]) : n + ' ' + unit);
+    return 'Timer de ' + n + ' ' + unit + (lm ? ' para ' + lm[1] : '') + ' en marcha.';
+  }
+  if (/(cancel[aá]|par[aá]|deten[eé]|borr[aá]).*(timer|temporizador)/.test(q)) {
+    const n = S.timers.length; S.timers = []; saveTimers(); renderTimersCard();
+    return n ? 'Listo, quité los timers.' : 'No había timers.';
+  }
+  // Alarma
+  if (/(alarma|despert)/.test(q) && (m = q.match(/\b(\d{1,2})(?:[:.h ](\d{2}))?\b/))) {
+    let h = parseInt(m[1], 10);
+    if (/(tarde|noche)/.test(q) && h < 12) h += 12;
+    const time = pad(h % 24) + ':' + (m[2] || '00');
+    const days = /(todos los d[ií]as)/.test(q) ? [0, 1, 2, 3, 4, 5, 6] : /(lunes a viernes|d[ií]as de semana|semana)/.test(q) ? [1, 2, 3, 4, 5] : [];
+    S.alarms.push({ id: 'a' + Date.now(), time: time, label: 'Alarma', days: days, on: true }); saveAlarms();
+    S.ui.ta = 'alarms'; renderTimersCard(); renderHeader();
+    return 'Alarma para las ' + time + (days.length ? ' (' + daysText({ days: days }) + ')' : '') + '.';
+  }
+  // Compras: agregar
+  if ((m = q.match(/(?:agreg[aá]r?|a[nñ]ad[ií]r?|sum[aá]r?|pon[eé]r?|anot[aá]r?)\s+(.+?)\s+(?:a|en)\s+(?:la\s+|mi\s+)?(?:lista|compras|s[uú]per)/)) || (m = q.match(/^(?:hay que |tenemos que |falta )?compr(?:ar|á)\s+(.+)$/))) {
+    const items = m[1].split(/\s*,\s*|\s+y\s+/).map(x => x.trim()).filter(Boolean);
+    items.forEach(x => addItem('shop', x));
+    S.ui.tab = 'compras'; renderTabs(); renderLists();
+    return 'Agregué ' + joinList(items) + ' a Compras.';
+  }
+  // Compras: quitar
+  if ((m = q.match(/(?:sac[aá]|quit[aá]|borr[aá]|elimin[aá]|tach[aá])\s+(?:el |la |los |las )?(.+?)\s+de\s+(?:la\s+)?(?:lista|compras)/))) {
+    const it = S.data.shop.find(x => !x.done && x.title.toLowerCase() === m[1].trim().toLowerCase());
+    if (!it) return 'No encontré ' + m[1] + ' en Compras.';
+    toggleItem('shop', it.id); renderLists();
+    return 'Listo, taché ' + it.title + '.';
+  }
+  if (/(qu[eé] (hay que|tengo que|falta) comprar|lista de compras)/.test(q)) {
+    const p = S.data.shop.filter(x => !x.done).map(x => x.title);
+    S.ui.tab = 'compras'; renderTabs();
+    return p.length ? 'En Compras hay: ' + joinList(p) + '.' : 'La lista de compras está vacía.';
+  }
+  // Tareas / recordatorios
+  if ((m = q.match(/tarea\s*:?\s+(.+)$/)) || (m = q.match(/record[aá]me\s+(?:que\s+)?(?:hay que\s+)?(.+)$/))) {
+    const pd = parseDue(m[1]);
+    addItem('tasks', pd.text, pd.due);
+    S.ui.tab = 'tareas'; renderTabs(); renderLists();
+    const dl = dueLabel(pd.due);
+    return 'Anotado' + (dl ? ' para ' + dl.t.toLowerCase() : '') + ': ' + cap(pd.text) + '.';
+  }
+  if (/(qu[eé] tareas|tareas pendientes|qu[eé] tengo pendiente)/.test(q)) {
+    const p = S.data.tasks.filter(x => !x.done).map(x => x.title);
+    S.ui.tab = 'tareas'; renderTabs();
+    return p.length ? 'Tenés ' + p.length + ' pendientes: ' + joinList(p.slice(0, 5)) + '.' : 'No tenés tareas pendientes.';
+  }
+  // Agenda
+  if (/(qu[eé] tengo|qu[eé] hay|agenda|eventos|calendario)/.test(q)) {
+    const tomorrow = /ma[nñ]ana/.test(q);
+    const d = addDays(new Date(), tomorrow ? 1 : 0);
+    const list = eventsOn(ymd(d)).filter(e => tomorrow || e.allDay || new Date(e.end).getTime() > Date.now());
+    S.ui.day = tomorrow ? 1 : 0; S.ui.tab = 'agenda'; renderAgenda(); renderTabs();
+    if (!list.length) return tomorrow ? 'Mañana no tenés eventos.' : 'No te quedan eventos por hoy.';
+    const first = list[0];
+    return (tomorrow ? 'Mañana tenés ' : 'Hoy te quedan ') + list.length + (list.length === 1 ? ' evento' : ' eventos') + '. ' + (tomorrow ? 'El primero es ' : 'El próximo es ') + first.title + (first.allDay ? '' : ' a las ' + hm(new Date(first.start))) + '.';
+  }
+  // Clima
+  if (/(clima|tiempo|temperatura|llover|lluvia|calor|fr[ií]o)/.test(q)) {
+    const w = S.weather;
+    if (!w) return 'Todavía no configuraste tu ciudad para el clima.';
+    let r = 'Ahora hace ' + w.temp + '° y está ' + WMO(w.code)[0].toLowerCase() + '. Máxima de ' + w.max + '°.';
+    if (w.daily && w.daily[0]) r += ' Mañana: ' + WMO(w.daily[0].c)[0].toLowerCase() + ', ' + w.daily[0].hi + '°.';
+    return r;
+  }
+  if (/navidad/.test(q)) {
+    const x = xmasInfo(new Date());
+    return x.days > 0 ? 'Faltan ' + x.days + ' días para Navidad.' : x.label;
+  }
+  if (/(qu[eé] hora)/.test(q)) return 'Son las ' + hm(new Date()) + '.';
+  return 'No te entendí. Probá con alguno de los ejemplos.';
+}
+
+/* ---------------------------- Overlays ---------------------------- */
+function closeSheet() {
+  try { if (rec) rec.abort(); } catch (e) { /* nada */ }
+  S.ui.sheet = null; renderOverlay();
+}
+const EXAMPLES = ['Agregá leche y pan a la lista', 'Timer de 10 minutos para los fideos', 'Recordame pagar la luz mañana', 'Alarma a las 7:15', '¿Qué tengo hoy?', '¿Cómo está el clima?'];
+
+function voiceSheet(sh) {
+  const listening = sh.phase === 'listen';
+  const done = sh.phase === 'done';
+  return '<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="Asistente de voz">' +
+    '<button class="x" data-act="close" aria-label="Cerrar">' + ic('x', 18) + '</button>' +
+    (SR || done ? '<button class="orb ' + (listening ? 'live' : '') + (done ? ' ok' : '') + '" data-act="listen" aria-label="Escuchar de nuevo" style="border:0;padding:0"><div><div>' + ic(done ? 'check' : 'mic', 26, 2.2) + '</div></div></button>' : '') +
+    '<div class="vt">' +
+    (done ? '<span class="muted" id="v-heard">“' + esc(sh.heard) + '”</span><span class="r">' + esc(sh.reply) + '</span>'
+          : SR ? '<span class="h">' + (listening ? 'Te escucho…' : 'Tocá el micrófono') + '</span><span class="muted" id="v-heard">' + (sh.heard ? '“' + esc(sh.heard) + '”' : 'Decí un comando o tocá un ejemplo') + '</span>'
+               : '<span class="h">¿Qué necesitás?</span><span class="muted" id="v-heard">Tocá un ejemplo o escribí el comando abajo</span>') +
+    (sh.note && SR ? '<span class="muted small">' + esc(sh.note) + '</span>' : '') +
+    '</div>' +
+    '<div class="exs">' + EXAMPLES.map(x => '<button data-act="ex" data-arg="' + esc(x) + '">' + esc(x) + '</button>').join('') + '</div>' +
+    '<div class="field"><label for="cmd">O escribí el comando</label><div class="row" style="gap:8px"><input id="cmd" type="text" placeholder="Ej.: agregá pilas a la lista" autocomplete="off"><button class="btn" data-act="send" aria-label="Enviar" style="width:48px;padding:0">' + ic('send', 20, 2.4) + '</button></div></div>' +
+    '</div></div>';
+}
+function themesSheet() {
+  const auto = resolveTheme('auto', new Date());
+  const opts = ['auto'].concat(Object.keys(THEMES));
+  return '<div class="scrim" data-act="scrim"><div class="sheet wide" role="dialog" aria-label="Elegir tema">' +
+    '<button class="x" data-act="close" aria-label="Cerrar">' + ic('x', 18) + '</button>' +
+    '<div><h3>Temas</h3><span class="muted" style="font-size:14px">Mismas funciones, distinto estilo. Se guarda en este dispositivo.</span></div>' +
+    '<div class="themes">' + opts.map(id => {
+      const th = THEMES[id === 'auto' ? auto : id];
+      const name = id === 'auto' ? 'Automático' : th.name;
+      const desc = id === 'auto' ? 'Por temporada y hora · ahora ' + THEMES[auto].name : th.desc;
+      return '<button data-act="theme" data-arg="' + id + '" aria-pressed="' + (S.settings.theme === id) + '">' +
+        '<span class="sw-prev" style="background:' + th.bg + '"><span style="left:10px;top:10px;width:46%;height:44%;background:' + th.card + '"></span><span style="right:10px;top:10px;width:22%;height:44%;background:' + th.card + '"></span><span style="left:10px;bottom:9px;width:34px;height:12px;border-radius:6px;background:' + th.accent + '"></span>' +
+        (th.festive ? '<span style="right:10px;bottom:10px;width:30px;height:8px;background:linear-gradient(90deg,#FF5A4E 0 33%,#FFD166 33% 66%,#4CD08A 66%)"></span>' : '') + '</span>' +
+        '<b>' + name + '</b><small>' + desc + '</small></button>';
+    }).join('') + '</div></div></div>';
+}
+function settingsSheet() {
+  const s = S.settings;
+  const st = S.ui.sheet.status || '';
+  const stc = S.ui.sheet.statusOk === true ? 'ok' : S.ui.sheet.statusOk === false ? 'err' : '';
+  const sel = (id, v, opts) => '<select id="' + id + '">' + opts.map(o => '<option value="' + o[0] + '"' + (String(o[0]) === String(v) ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
+  return '<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-label="Ajustes">' +
+    '<button class="x" data-act="close" aria-label="Cerrar">' + ic('x', 18) + '</button>' +
+    '<h3>Ajustes</h3>' +
+    '<span class="lab">Conexión con Google (Apps Script)</span>' +
+    '<div class="field"><label for="s-url">URL de la aplicación web</label><input id="s-url" type="url" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(s.apiUrl) + '"></div>' +
+    '<div class="field"><label for="s-token">Clave (TOKEN)</label><input id="s-token" type="password" value="' + esc(s.token) + '" autocomplete="off"></div>' +
+    '<div class="row wrap"><button class="btn sec" data-act="test">Probar conexión</button><span class="status ' + stc + '" id="s-status">' + esc(st) + '</span></div>' +
+    '<span class="lab" style="margin-top:8px">Clima</span>' +
+    '<div class="field"><label for="s-city">Ciudad</label><div class="row" style="gap:8px"><input id="s-city" type="text" placeholder="Escribí tu ciudad" value="' + esc(s.place) + '"><button class="btn sec" data-act="city">Buscar</button></div></div>' +
+    '<button class="btn sec" data-act="gps">Usar la ubicación de este dispositivo</button>' +
+    '<span class="lab" style="margin-top:8px">Pantalla</span>' +
+    '<div class="setrow"><span>Animaciones (nieve, guirnalda)</span><button class="sw" role="switch" aria-checked="' + s.anim + '" data-act="flag" data-arg="anim" aria-label="Animaciones"></button></div>' +
+    '<div class="setrow"><span>Responder en voz alta</span><button class="sw" role="switch" aria-checked="' + s.speak + '" data-act="flag" data-arg="speak" aria-label="Responder en voz alta"></button></div>' +
+    '<div class="setrow"><span>Atenuar de noche (' + s.nightFrom + ':00 a ' + s.nightTo + ':00)</span><button class="sw" role="switch" aria-checked="' + s.nightDim + '" data-act="flag" data-arg="nightDim" aria-label="Atenuar de noche"></button></div>' +
+    '<div class="field"><label for="s-amb">Modo ambiente después de</label>' + sel('s-amb', s.ambientMin, [[0, 'Nunca'], [2, '2 minutos'], [5, '5 minutos'], [10, '10 minutos'], [20, '20 minutos']]) + '</div>' +
+    '<div class="field"><label for="s-lang">Idioma del micrófono</label>' + sel('s-lang', s.lang, [['es-PY', 'Español (Paraguay)'], ['es-AR', 'Español (Argentina)'], ['es-419', 'Español (Latinoamérica)'], ['es-ES', 'Español (España)']]) + '</div>' +
+    '<div class="row" style="justify-content:flex-end;gap:8px;margin-top:4px"><button class="btn sec" data-act="close">Cancelar</button><button class="btn" data-act="save">Guardar</button></div>' +
+    '<span class="muted small">Versión ' + VERSION + '</span>' +
+    '</div></div>';
+}
+function ambientView() {
+  const d = new Date();
+  const w = S.weather;
+  const t = ymd(d);
+  const next = eventsOn(t).filter(e => e.allDay || new Date(e.end).getTime() > Date.now())[0] || eventsOn(ymd(addDays(d, 1)))[0];
+  const nxt = next ? esc(next.title) + (next.allDay ? '' : ' · ' + hm(new Date(next.start))) : 'Sin eventos próximos';
+  const x = xmasInfo(d);
+  const festive = S.themeId === 'navidad';
+  return '<button class="ambient" data-act="unambient" aria-label="Tocá para volver al dashboard">' +
+    '<span class="top2"><span style="display:flex;flex-direction:column;gap:4px"><span class="muted" style="font-size:16px">' + esc($('headline').textContent) + '</span><span class="ad">' + esc($('date').textContent) + '</span></span>' +
+    (w ? '<span class="ad" style="display:flex;align-items:center;gap:10px;color:var(--text)"><span style="color:var(--sunFg)">' + ic(weatherIcon(w.code, w.isDay), 34, 1.8) + '</span>' + w.temp + '°</span>' : '') + '</span>' +
+    '<span class="ac" id="amb-clock">' + hm(d) + '</span>' +
+    '<span class="bot"><span class="nx"><span class="dot" style="width:10px;height:10px;border-radius:5px;background:var(--accent)"></span><span style="display:flex;flex-direction:column"><span class="muted small">Próximo</span><span style="font-size:18px;font-weight:600">' + nxt + '</span></span></span>' +
+    (festive && x.days > 0 ? '<span class="cd">' + ic('tree', 30, 1.8) + '<span style="display:flex;flex-direction:column"><b>' + x.days + '</b><span style="font-size:13px;opacity:.9">' + x.label + '</span></span></span>' : '<span class="muted small">Tocá la pantalla para volver</span>') +
+    '</span></button>';
+}
+function ringView(r) {
+  return '<div class="ring" role="alertdialog" aria-label="' + esc(r.title) + '"><span class="rt">' + esc(r.title) + '</span><span class="rl">' + esc(r.label || '') + '</span>' +
+    '<div class="row">' + (r.alarm ? '<button class="sec" data-act="snooze">Posponer 5 min</button>' : '') + '<button data-act="stopring">Detener</button></div></div>';
+}
+function renderOverlay() {
+  let html = '';
+  if (S.ui.ambient) html += ambientView();
+  const sh = S.ui.sheet;
+  if (sh) html += sh.kind === 'voice' ? voiceSheet(sh) : sh.kind === 'themes' ? themesSheet() : settingsSheet();
+  if (S.ui.ring) html += ringView(S.ui.ring);
+  $('overlay').innerHTML = html;
+  const cmd = $('cmd');
+  if (cmd) cmd.addEventListener('keydown', e => { if (e.key === 'Enter' && cmd.value.trim()) runCommand(cmd.value.trim()); });
+}
+let toastT = null;
+function toast(text) {
+  $('toast-slot').innerHTML = '<div class="toast" role="status">' + esc(text) + '</div>';
+  clearTimeout(toastT); toastT = setTimeout(() => { $('toast-slot').innerHTML = ''; }, 4000);
+}
+
+/* ---------------------------- Ambiente y atenuado ---------------------------- */
+function enterAmbient() { if (S.ui.ring) return; S.ui.ambient = true; S.ui.sheet = null; document.body.classList.add('amb'); renderOverlay(); }
+function exitAmbient() { if (!S.ui.ambient) return; S.ui.ambient = false; S.lastInput = Date.now(); document.body.classList.remove('amb'); renderOverlay(); }
+function checkIdle() {
+  const m = Number(S.settings.ambientMin) || 0;
+  if (m > 0 && !S.ui.ambient && !S.ui.sheet && !S.ui.ring && Date.now() - S.lastInput > m * 60000) enterAmbient();
+  const h = new Date().getHours();
+  const night = S.settings.nightDim && (S.settings.nightFrom > S.settings.nightTo ? (h >= S.settings.nightFrom || h < S.settings.nightTo) : (h >= S.settings.nightFrom && h < S.settings.nightTo));
+  $('dim').classList.toggle('on', !!night && S.ui.ambient);
+}
+
+/* ---------------------------- Tema y decoraciones ---------------------------- */
+function buildDecorations() {
+  const N = window.innerWidth < 1100 ? 18 : 24;
+  const colors = ['#FF5A4E', '#FFD166', '#4CD08A', '#6CB8FF'];
+  let path = 'M0 4', bulbs = '';
+  for (let i = 0; i < N; i++) {
+    path += ' Q ' + Math.round((i + .5) * 1000 / N) + ' 26 ' + Math.round((i + 1) * 1000 / N) + ' 4';
+    bulbs += '<b style="left:' + ((i + .5) / N * 100) + '%;color:' + colors[i % 4] + ';animation-delay:' + ((i % 3) * .6) + 's"></b>';
+  }
+  $('garland').innerHTML = '<svg viewBox="0 0 1000 30" preserveAspectRatio="none"><path d="' + path + '" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.5"/></svg>' + bulbs;
+  let flakes = '';
+  for (let i = 0; i < 16; i++) {
+    const size = 10 + (i * 7) % 14;
+    flakes += '<i style="left:' + ((i * 37) % 97 + 1) + '%;opacity:' + (0.1 + ((i * 53) % 100) / 700) + ';animation-duration:' + (14 + (i * 11) % 16) + 's;animation-delay:-' + ((i * 29) % 20) + 's">' +
+      '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="' + P.snow + '"/></svg></i>';
+  }
+  $('snow').innerHTML = flakes;
+}
+function applyTheme() {
+  S.themeId = resolveTheme(S.settings.theme, new Date());
+  document.documentElement.dataset.theme = S.themeId;
+  document.body.classList.toggle('anim', !!S.settings.anim);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEMES[S.themeId].meta);
+  renderHeader();
+}
+
+/* ---------------------------- Ajustes: acciones ---------------------------- */
+async function testConnection() {
+  const url = ($('s-url') || {}).value, token = ($('s-token') || {}).value;
+  const sh = S.ui.sheet;
+  if (!url || !token) { sh.status = 'Completá URL y clave.'; sh.statusOk = false; return updateStatus(); }
+  sh.status = 'Probando…'; sh.statusOk = null; updateStatus();
+  const backup = { apiUrl: S.settings.apiUrl, token: S.settings.token };
+  S.settings.apiUrl = url.trim(); S.settings.token = token.trim();
+  try {
+    const j = await apiGet('summary', '&days=7');
+    if (!j.ok) throw new Error(j.error === 'unauthorized' ? 'clave incorrecta' : j.error);
+    sh.status = 'Conectado ✓ ' + j.data.events.length + ' eventos · ' + j.data.tasks.filter(x => !x.done).length + ' tareas · ' + j.data.shop.filter(x => !x.done).length + ' compras';
+    sh.statusOk = true;
+  } catch (e) {
+    sh.status = 'Error: ' + (e.message || e); sh.statusOk = false;
+  }
+  S.settings.apiUrl = backup.apiUrl; S.settings.token = backup.token;
+  updateStatus();
+}
+function updateStatus() {
+  const el = $('s-status');
+  if (!el) return;
+  el.textContent = S.ui.sheet.status || '';
+  el.className = 'status ' + (S.ui.sheet.statusOk === true ? 'ok' : S.ui.sheet.statusOk === false ? 'err' : '');
+}
+async function findCity() {
+  const name = ($('s-city') || {}).value;
+  if (!name) return;
+  const sh = S.ui.sheet;
+  try {
+    const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=es&name=' + encodeURIComponent(name));
+    const j = await r.json();
+    const g = j.results && j.results[0];
+    if (!g) throw new Error('no encontré esa ciudad');
+    sh.pendingLoc = { lat: g.latitude, lon: g.longitude, place: g.name + (g.admin1 ? ', ' + g.admin1 : '') + (g.country ? ', ' + g.country : '') };
+    $('s-city').value = sh.pendingLoc.place;
+    sh.status = 'Ubicación: ' + sh.pendingLoc.place + ' (tocá Guardar)'; sh.statusOk = true;
+  } catch (e) { sh.status = 'Clima: ' + (e.message || e); sh.statusOk = false; }
+  updateStatus();
+}
+function useGps() {
+  const sh = S.ui.sheet;
+  if (!navigator.geolocation) { sh.status = 'Este dispositivo no da ubicación.'; sh.statusOk = false; return updateStatus(); }
+  sh.status = 'Buscando ubicación…'; sh.statusOk = null; updateStatus();
+  navigator.geolocation.getCurrentPosition(p => {
+    sh.pendingLoc = { lat: Math.round(p.coords.latitude * 1000) / 1000, lon: Math.round(p.coords.longitude * 1000) / 1000, place: 'Ubicación del dispositivo' };
+    if ($('s-city')) $('s-city').value = sh.pendingLoc.place;
+    sh.status = 'Ubicación lista (tocá Guardar)'; sh.statusOk = true; updateStatus();
+  }, err => { sh.status = 'No se pudo obtener la ubicación (' + err.message + ')'; sh.statusOk = false; updateStatus(); }, { timeout: 15000 });
+}
+function saveSettingsSheet() {
+  const s = S.settings, sh = S.ui.sheet;
+  const urlChanged = s.apiUrl !== ($('s-url').value || '').trim() || s.token !== ($('s-token').value || '').trim();
+  s.apiUrl = ($('s-url').value || '').trim();
+  s.token = ($('s-token').value || '').trim();
+  s.ambientMin = Number($('s-amb').value);
+  s.lang = $('s-lang').value;
+  if (sh.flags) Object.assign(s, sh.flags);
+  if (sh.pendingLoc) { s.lat = sh.pendingLoc.lat; s.lon = sh.pendingLoc.lon; s.place = sh.pendingLoc.place; }
+  saveSettings();
+  closeSheet();
+  applyTheme();
+  if (sh.pendingLoc) loadWeather();
+  if (urlChanged) {
+    if (isDemo()) { S.data = demoData(); } else { S.data = LS.get('cache', { events: [], tasks: [], shop: [], calendars: [] }); S.sync.last = 0; sync(); }
+    renderAgenda(); renderLists(); renderTabs(); renderHeader(); loadWeather();
+  }
+  toast('Ajustes guardados');
+}
+
+/* ---------------------------- Eventos ---------------------------- */
+const ACTIONS = {
+  tab: a => { S.ui.tab = a; renderTabs(); },
+  ta: a => { S.ui.ta = a; renderTimersCard(); },
+  day: a => { S.ui.day = Number(a); renderAgenda(); },
+  toggle: (a, el) => { toggleItem(el.dataset.kind, a); },
+  clear: a => clearDone(a),
+  add: a => {
+    const inp = $(a === 'shop' ? 'shop-in' : 'task-in');
+    const v = inp.value.trim();
+    if (!v) { inp.focus(); return; }
+    if (a === 'tasks') { const pd = parseDue(v.toLowerCase()); addItem('tasks', pd.due ? pd.text : v, pd.due); } else addItem('shop', v);
+    inp.value = ''; renderLists(); renderTabs();
+  },
+  preset: a => addTimer(Number(a) * 60, a + ' min'),
+  ttoggle: a => timerToggle(a),
+  tremove: a => { S.timers = S.timers.filter(t => t.id !== a); saveTimers(); renderTimersCard(); },
+  atoggle: a => { const al = S.alarms.find(x => x.id === a); if (al) { al.on = !al.on; saveAlarms(); renderTimersCard(); renderHeader(); } },
+  aremove: a => { S.alarms = S.alarms.filter(x => x.id !== a); saveAlarms(); renderTimersCard(); renderHeader(); },
+  aadd: () => {
+    const time = $('al-time').value; if (!time) return;
+    const opt = $('al-days').value;
+    const days = opt === 'wk' ? [1, 2, 3, 4, 5] : opt === 'all' ? [0, 1, 2, 3, 4, 5, 6] : opt === 'we' ? [0, 6] : [];
+    S.alarms.push({ id: 'a' + Date.now(), time: time, label: 'Alarma', days: days, on: true });
+    saveAlarms(); renderTimersCard(); renderHeader(); toast('Alarma a las ' + time);
+  },
+  voice: () => openVoice(),
+  listen: () => { S.ui.sheet = { kind: 'voice', phase: 'listen', heard: '', reply: '' }; renderOverlay(); startListening(); },
+  ex: a => runCommand(a),
+  send: () => { const v = ($('cmd') || {}).value; if (v && v.trim()) runCommand(v.trim()); },
+  close: () => closeSheet(),
+  scrim: (a, el, ev) => { if (ev.target === el) closeSheet(); },
+  themes: () => { S.ui.sheet = { kind: 'themes' }; renderOverlay(); },
+  theme: a => { S.settings.theme = a; saveSettings(); applyTheme(); closeSheet(); },
+  settings: () => { S.ui.sheet = { kind: 'settings', flags: {} }; renderOverlay(); },
+  flag: (a, el) => { const sh = S.ui.sheet; const cur = sh.flags[a] != null ? sh.flags[a] : S.settings[a]; sh.flags[a] = !cur; el.setAttribute('aria-checked', String(!cur)); },
+  test: () => testConnection(),
+  city: () => findCity(),
+  gps: () => useGps(),
+  save: () => saveSettingsSheet(),
+  resync: () => { S.sync.ok = null; sync(); },
+  ambient: () => enterAmbient(),
+  unambient: () => exitAmbient(),
+  stopring: () => stopRing(),
+  snooze: () => {
+    const d = new Date(Date.now() + 5 * 60000);
+    S.alarms.push({ id: 'a' + Date.now(), time: hm(d), label: 'Pospuesta', days: [], on: true });
+    saveAlarms(); stopRing(); renderTimersCard(); renderHeader();
+  }
+};
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-act]');
+  if (!el) return;
+  const fn = ACTIONS[el.dataset.act];
+  if (fn) fn(el.dataset.arg, el, ev);
+});
+['task-in', 'shop-in'].forEach(id => $(id).addEventListener('keydown', e => {
+  if (e.key === 'Enter') ACTIONS.add(id === 'shop-in' ? 'shop' : 'tasks');
+}));
+['pointerdown', 'keydown'].forEach(t => document.addEventListener(t, () => { S.lastInput = Date.now(); unlockAudio(); }, { passive: true }));
+
+/* ---------------------------- Pantalla siempre encendida ---------------------------- */
+let wakeLock = null;
+async function keepAwake() {
+  try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* no soportado */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') { keepAwake(); sync(); renderAll(); }
+});
+
+/* ---------------------------- Arranque ---------------------------- */
+function renderAll() {
+  applyTheme(); renderClock(); renderWeather(); renderTimersCard(); renderAgenda(); renderLists(); renderTabs(); renderHeader();
+}
+function init() {
+  $('b-themes').innerHTML = ic('palette', 22);
+  $('b-settings').innerHTML = ic('gear', 22);
+  $('b-ambient').innerHTML = ic('frame', 22);
+  $('mic-ic').innerHTML = ic(SR ? 'mic' : 'send', 20);
+  if (!SR) $('b-talk').lastElementChild.textContent = 'Comando';
+  $('ic-timer').innerHTML = ic('timer', 16);
+  $('ic-alarm').innerHTML = ic('alarm', 16);
+  $('ic-cal').innerHTML = ic('cal', 18);
+  $('ic-tasks').innerHTML = ic('tasks', 18);
+  $('ic-shop').innerHTML = ic('cart', 18);
+  $('add-t').innerHTML = ic('plus', 18, 2.4);
+  $('add-s').innerHTML = ic('plus', 18, 2.4);
+  buildDecorations();
+  S.data = isDemo() ? demoData() : LS.get('cache', { events: [], tasks: [], shop: [], calendars: [] });
+  S.weather = LS.get('weather', null);
+  renderAll();
+  loadWeather();
+  sync();
+  keepAwake();
+
+  let lastMinute = -1;
+  setInterval(() => {
+    const d = new Date();
+    renderClock();
+    tickTimers();
+    if (d.getMinutes() !== lastMinute) {
+      lastMinute = d.getMinutes();
+      checkAlarms();
+      applyTheme();
+      renderAgenda(); renderTabs();
+      if (S.ui.ambient) renderOverlay();
+    }
+    checkIdle();
+  }, 1000);
+  setInterval(sync, 60 * 1000);
+  setInterval(loadWeather, 20 * 60 * 1000);
+  window.addEventListener('online', () => { sync(); loadWeather(); });
+  window.addEventListener('resize', () => { clearTimeout(init._r); init._r = setTimeout(buildDecorations, 300); });
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* sin SW */ });
+  }
+}
+init();
+</script>
+</body>
+</html>
