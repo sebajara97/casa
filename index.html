@@ -1108,7 +1108,7 @@ async function runCommand(text) {
   try { reply = await handleCommand(text); } catch (e) { reply = 'Ups, algo falló: ' + (e.message || e); }
   if (S.ui.sheet && S.ui.sheet.kind === 'voice') { S.ui.sheet.reply = reply; renderOverlay(); }
   // Acciones: pitido de confirmación (rápido). Preguntas (hora, clima, agenda…): respuesta hablada.
-  if (reply === 'Cancelado.') { /* sin sonido */ }
+  if (reply === 'Cancelado.' || /^No te entend/.test(reply)) { /* sin sonido: evita hablar ante activaciones accidentales */ }
   else if (/^(Agregu[eé]|Timer de|Alarma para|Anotado|Listo|Tach[eé]|Activando|Agend[eé])/.test(reply)) { if (!/apagu[eé]/.test(reply)) { unlockAudio(); beep(); } }
   else speak(reply);
   clearTimeout(runCommand._t);
@@ -1421,6 +1421,10 @@ function jvWav(chunks) {
   for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
   return btoa(bin);
 }
+// Instrucción de transcripción: literal, sin inventar (con ruido o silencio responde NADA).
+const JV_STT_PROMPT = 'Transcribí literalmente, palabra por palabra, solo lo que una persona dice en este audio (español de Paraguay). ' +
+  'Si una palabra suena mal pronunciada, escribí la palabra en español más probable, pero no agregues, no completes y no adivines palabras que no se dijeron. ' +
+  'Escribí los números con cifras. Si no hay una persona hablando con claridad (silencio, ruido, música), respondé exactamente: NADA';
 async function jvSend() {
   const R = JV.recd; if (!R) return;
   JV.recd = null; clearTimeout(JV.cmdT);
@@ -1428,7 +1432,7 @@ async function jvSend() {
   const sh = S.ui.sheet; if (sh && sh.jarvis) { sh.heard = '…'; const el = $('v-heard'); if (el) el.textContent = 'Pensando…'; }
   const t0 = Date.now();
   try {
-    const r = await Promise.race([apiPost('stt', { audio: jvWav(R.chunks), mime: 'audio/wav' }), new Promise((_, ko) => setTimeout(() => ko(new Error('tiempo agotado')), 15000))]);
+    const r = await Promise.race([apiPost('stt', { audio: jvWav(R.chunks), mime: 'audio/wav', prompt: JV_STT_PROMPT }), new Promise((_, ko) => setTimeout(() => ko(new Error('tiempo agotado')), 15000))]);
     jvLog('gemini', { text: r.text, ms: Date.now() - t0 });
     const t = String(r.text || '').trim();
     jvFinish(/^(nada|nada\.)$/i.test(t) || t.length < 3 ? '' : t);
